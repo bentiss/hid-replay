@@ -1,0 +1,8 @@
+HID replay - HID recorder
+
+This program allow users to capture hidraw events and then
+replay them through the uhid kernel module.
+
+This is mainly for debugging kernel drivers. If your goal
+is just to replay events, have a look at evemu:
+https://launchpad.net/evemu
