@@ -39,6 +39,7 @@
 #include <fcntl.h>
 #include <unistd.h>
 #include <getopt.h>
+#include <dirent.h>
 
 /* C */
 #include <stdio.h>
@@ -50,13 +51,16 @@
 extern char *program_invocation_name;
 extern char *program_invocation_short_name;
 
+#define DEV_DIR "/dev"
+#define HIDRAW_DEV_NAME "hidraw"
+
 /**
  * Print usage information.
  */
 static int usage(void)
 {
 	printf("USAGE:\n");
-	printf("   %s /dev/hidrawX\n", program_invocation_short_name);
+	printf("   %s [/dev/hidrawX]\n", program_invocation_short_name);
 
 	return EXIT_FAILURE;
 }
@@ -74,6 +78,72 @@ int timeval_subtract(struct timeval *result, struct timeval *t2, struct timeval 
 	result->tv_usec = diff % 1000000;
 
 	return (diff < 0);
+}
+
+/**
+ * Filter for the AutoDevProbe scandir on /dev.
+ *
+ * @param dir The current directory entry provided by scandir.
+ *
+ * @return Non-zero if the given directory entry starts with "hidraw", or zero
+ * otherwise.
+ */
+static int is_hidraw_device(const struct dirent *dir) {
+	return strncmp(HIDRAW_DEV_NAME, dir->d_name, 6) == 0;
+}
+
+/**
+ * Scans all /dev/hidraw*, display them and ask the user which one to
+ * open.
+ *
+ * code taken from evtest.c
+ *
+ * @return The hidraw device file name of the device file selected. This
+ * string is allocated and must be freed by the caller.
+ */
+static char* scan_devices(void)
+{
+	struct dirent **namelist;
+	int i, ndev, devnum, res;
+	char *filename;
+
+	ndev = scandir(DEV_DIR, &namelist, is_hidraw_device, alphasort);
+	if (ndev <= 0)
+		return NULL;
+
+	fprintf(stderr, "Available devices:\n");
+
+	for (i = 0; i < ndev; i++)
+	{
+		char fname[64];
+		int fd = -1;
+		char name[256] = "???";
+
+		snprintf(fname, sizeof(fname),
+			 "%s/%s", DEV_DIR, namelist[i]->d_name);
+		fd = open(fname, O_RDONLY);
+		if (fd < 0)
+			continue;
+
+		/* Get Raw Name */
+		res = ioctl(fd, HIDIOCGRAWNAME(256), name);
+		if (res >= 0)
+			fprintf(stderr, "%s:	%s\n", fname, name);
+		close(fd);
+		free(namelist[i]);
+	}
+
+	fprintf(stderr, "Select the device event number [0-%d]: ", ndev - 1);
+	scanf("%d", &devnum);
+
+	if (devnum >= ndev || devnum < 0)
+		return NULL;
+
+	asprintf(&filename, "%s/%s%d",
+		 DEV_DIR, HIDRAW_DEV_NAME,
+		 devnum);
+
+	return filename;
 }
 
 int main(int argc, char **argv)
@@ -97,8 +167,13 @@ int main(int argc, char **argv)
 	if (optind < argc)
 		device = argv[optind++];
 	else {
-		fprintf(stderr, "no hidraw device provided\n");
-		return usage();
+		if (getuid() != 0)
+			fprintf(stderr, "Not running as root, some devices "
+				"may not be available.\n");
+
+		device = scan_devices();
+		if (!device)
+			return usage();
 	}
 
 	fd = open(device, O_RDWR);
