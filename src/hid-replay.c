@@ -115,6 +115,9 @@ static void hid_replay_event(int fuhid, char *buf, ssize_t len, struct timeval *
 	ev_time.tv_sec = sec;
 	ev_time.tv_usec = usec;
 
+	if (time->tv_sec == 0 && time->tv_usec == 0)
+		*time = ev_time;
+
 	usec = 1000000L * (ev_time.tv_sec - time->tv_sec);
 	usec += ev_time.tv_usec - time->tv_usec;
 
