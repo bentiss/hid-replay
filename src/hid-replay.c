@@ -60,8 +60,8 @@ static int usage(void)
 	printf("\n");
 	printf("where OPTION is either:\n");
 	printf("   -h or --help: print this message\n");
-	printf("   -a or --auto: default mode: automatic (play once without waiting)\n");
-	printf("   -i or --interactive: interactive mode (allow to control and to replay several times)\n");
+	printf("   -i or --interactive: default mode: interactive mode (allow to control and to replay several times)\n");
+	printf("   -1 or --one: play once the events without waiting and then exit\n");
 
 	return EXIT_FAILURE;
 }
@@ -73,7 +73,7 @@ enum hid_replay_mode {
 
 static const struct option long_options[] = {
 	{ "help", no_argument, NULL, 'h' },
-	{ "auto", no_argument, NULL, 'a' },
+	{ "one", no_argument, NULL, '1' },
 	{ "interactive", no_argument, NULL, 'i' },
 	{ 0, },
 };
@@ -199,7 +199,7 @@ int main(int argc, char **argv)
 	long event_pos;
 	char line[40];
 	char *hid_file;
-	enum hid_replay_mode mode = MODE_AUTO;
+	enum hid_replay_mode mode = MODE_INTERACTIVE;
 
 	memset(&event, 0, sizeof(event));
 	memset(&dev, 0, sizeof(dev));
@@ -211,11 +211,11 @@ int main(int argc, char **argv)
 
 	while (1) {
 		int option_index = 0;
-		int c = getopt_long(argc, argv, "ahi", long_options, &option_index);
+		int c = getopt_long(argc, argv, "hi1", long_options, &option_index);
 		if (c == -1)
 			break;
 		switch (c) {
-		case 'a':
+		case '1':
 			mode = MODE_AUTO;
 			break;
 		case 'i':
