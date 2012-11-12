@@ -15,9 +15,6 @@ AM_MAINTAINER_MODE
 LIB_VERSION=1:0:0
 AC_SUBST([LIB_VERSION])
 
-# Initialize libtool
-AC_PROG_LIBTOOL
-
 # Checks for programs.
 AC_PROG_CC
 AC_PROG_INSTALL
