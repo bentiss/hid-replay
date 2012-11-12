@@ -1,8 +1,10 @@
 noinst_PROGRAMS =
 
-bin_PROGRAMS = \
-	hid-replay \
-	hid-recorder
+if HAVE_UHID
+bin_replay = hid-replay
+endif
+
+bin_PROGRAMS = hid-recorder $(bin_replay)
 
 INCLUDES=-I$(top_srcdir)/include/
 

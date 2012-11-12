@@ -19,6 +19,12 @@ AC_SUBST([LIB_VERSION])
 AC_PROG_CC
 AC_PROG_INSTALL
 
+AC_CHECK_HEADERS([linux/uhid.h],
+	AM_CONDITIONAL(HAVE_UHID, true),
+	[AM_CONDITIONAL(HAVE_UHID, false)
+	 AC_MSG_WARN([uhid.h not found - cannot create hid-replay])])
+
+
 # man page generation
 AC_ARG_VAR([XMLTO], [Path to xmlto command])
 AC_PATH_PROG([XMLTO], [xmlto])
