@@ -55,7 +55,7 @@ __u8 rdesc_buf[4096];
 static int usage(void)
 {
 	printf("USAGE:\n");
-	printf("   %s [OPTION] file\n", program_invocation_short_name);
+	printf("   %s [OPTION] filename\n", program_invocation_short_name);
 
 	printf("\n");
 	printf("where OPTION is either:\n");
