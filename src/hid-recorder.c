@@ -180,7 +180,7 @@ int main(int argc, char **argv)
 
 	if (fd < 0) {
 		perror("Unable to open device");
-		return 1;
+		return EXIT_FAILURE;
 	}
 
 	memset(&rpt_desc, 0x0, sizeof(rpt_desc));
