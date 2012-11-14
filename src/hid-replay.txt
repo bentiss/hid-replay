@@ -1,0 +1,83 @@
+HID-REPLAY(1)
+=============
+:doctype: manpage
+
+NAME
+----
+
+hid-replay - HID Input device replay through uhid.
+
+SYNOPSIS
+--------
+*hid-replay* [OPTIONS] [FILENAME]
+
+OPTIONS
+-------
+
+*-i, --interactive*::
+	_interactive_ mode: This is the default mode. The device is created and
+	the program wait for the user to hit _enter_. Once the _enter_ key is
+	pressed the whole events sequence in FILENAME is played in real time.
+	Once it is done, the program loops back to the wait of the user keypress
+	on the _enter_ key.
+
+	Hit *Ctrl-C* to stop the replay.
+
+*-1, --one*::
+	_one shot_ mode: the device is created and then the events are replayed
+	once in real time. The process exists at the end of the replay.
+
+DESCRIPTION
+-----------
+*hid-replay* requires the module uhid to be loaded (present in kernels 3.6+).
+
+If this kernel module is loaded, *hid-replay* allows the user to create
+virtual HID devices as if they were physically plugged to the system.
+Then, the user has the possibility to replay the previously recorded HID events
+that are therefore handled by the right HID kernel module.
+
+*hid-replay* needs to be able to write to /dev/uhid; in most cases this means it
+must be run as root.
+
+*hid-recorder* and *hid-replay* are used to debug kernel issues with HID input
+devices.
+
+INPUT FILE
+----------
+The input file of *hid-replay* has the following syntax:
+
+- *R:* size dump_of_report_descriptor_in_hexadecimal
+- *N:* common_name_of_the_device
+- *P:* physical_path
+- *I:* bus vendor_id product_id
+- *E:* timestamp size report_in_hexadecimal
+
+Any other starting characters are just ignored.
+
+CAUTION
+-------
+*hid-replay* is a very low level events injector. To have the virtual device
+handled by the right HID kernel module, *hid-replay* fakes that the device is on
+the original bus (USB, I2C or BT). Thus, if the kernel module in use has to
+write _back_ to the device the kernel may oops if the module is trying to
+direclty talk to the physical layer.
+
+Be sure to use this program with friendly HID modules that rely only on the
+generic hid callbacks.
+
+EXIT CODE
+---------
+*hid-replay* returns EXIT_FAILURE on error.
+
+SEE ALSO
+--------
+hid-recorder(1)
+
+COPYRIGHT
+---------
+ Copyright 2012, Benjamin Tissoires.
+ Copyright 2012, Red Hat, Inc.
+
+AUTHOR
+------
+ Benjamin Tissoires <benjamin.tissoires@redhat.com>
