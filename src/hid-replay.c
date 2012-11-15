@@ -240,6 +240,9 @@ int main(int argc, char **argv)
 	do {
 		size = getline(&buf, &n, fp);
 		switch (buf[0]) {
+			case '#':
+				/* comments, just skip the line */
+				break;
 			case 'R':
 				hid_replay_rdesc(buf, size, &dev);
 				break;

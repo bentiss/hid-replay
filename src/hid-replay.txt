@@ -46,6 +46,7 @@ INPUT FILE
 ----------
 The input file of *hid-replay* has the following syntax:
 
+- *#* comments
 - *R:* size dump_of_report_descriptor_in_hexadecimal
 - *N:* common_name_of_the_device
 - *P:* physical_path
