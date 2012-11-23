@@ -122,6 +122,8 @@ static void hid_replay_event(int fuhid, char *buf, ssize_t len, struct timeval *
 	usec += ev_time.tv_usec - time->tv_usec;
 
 	if (usec > 500) {
+		if (usec > 3000000)
+			usec = 3000000;
 		usleep(usec);
 		*time = ev_time;
 	}
