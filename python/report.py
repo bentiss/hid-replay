@@ -26,6 +26,11 @@ if int(os.popen("id -u").read()) != 0:
 	print "Must be run with root privileges"
 	sys.exit(1)
 
+# get the kernel version
+cmd = "uname -a"
+print cmd
+print os.popen(cmd).read()
+
 # get the report descriptors through lsusb first.
 
 os.chdir("/sys/bus/usb/drivers/usbhid")
