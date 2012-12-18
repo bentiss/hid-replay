@@ -194,13 +194,13 @@ def trace(device):
 	if size != rsize:
 		print "error, got", rsize, "instead of", size
 		return
-	rdesc_str = ["{:02x}".format(data) for data in rdesc]
+	rdesc_str = ["%02x" % (data) for data in rdesc]
 	bus, vid, pid = HIDIOCGRAWINFO(file)
 	name = HIDIOCGRAWNAME(file)
 	sys.stderr.write("Opening "+name+" ("+device+")\n")
 	print "R:", size, " ".join(rdesc_str)
 	print "N:", name
-	print "I:", bus, "{:04x} {:04x}".format(vid,pid)
+	print "I:", bus, "%04x %04x" % (vid,pid)
 	starttime = None
 	instr = 0
 	sys.stderr.write("Please follow these "+str(len(instructions) - 1)+" steps:\n")
@@ -227,8 +227,8 @@ def trace(device):
 		delta = now - starttime
 		fmt = 'B'*len(rdata)
 		data = struct.unpack(fmt, rdata)
-		data = ["{:02x}".format(d) for d in data]
-		print "E:", "{}.{:06}".format(delta.seconds, delta.microseconds), len(rdata), " ".join(data)
+		data = ["%02x" % (d) for d in data]
+		print "E:", "%d.%06d" % (delta.seconds, delta.microseconds), len(rdata), " ".join(data)
 	os.close(file)
 
 def find_device():
@@ -241,7 +241,7 @@ def find_device():
 		os.close(file)
 		sys.stderr.write(hidfile +": "+name+"\n")
 		print hidfile, name
-	sys.stderr.write("Select the device event number [0-{}]: ".format(len(files) - 1))
+	sys.stderr.write("Select the device event number [0-%d]: " % (len(files) - 1))
 	l = sys.stdin.readline()
 	print int(l)
 	return "/dev/hidraw"+str(int(l))
