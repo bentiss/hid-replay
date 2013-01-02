@@ -26,6 +26,9 @@ if int(os.popen("id -u").read()) != 0:
 	print "Must be run with root privileges"
 	sys.exit(1)
 
+# then, disable stdout buffering
+sys.stdout = os.fdopen(sys.stdout.fileno(), 'w', 0)
+
 # get the kernel version
 cmd = "uname -a"
 print cmd
