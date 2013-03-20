@@ -280,7 +280,7 @@ int main(int argc, char **argv)
 	stop = 0;
 	while (!stop) {
 		if (mode == MODE_INTERACTIVE) {
-			printf("hit enter (re)start replaying the events\n");
+			printf("Hit enter (re)start replaying the events\n");
 			fgets (line, sizeof(line), stdin);
 		} else
 			stop = 1;
