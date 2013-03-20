@@ -97,7 +97,7 @@ static void hid_replay_rdesc(char *rdesc, ssize_t len, struct uhid_create_req *d
 	dev->rd_size = rdesc_len;
 }
 
-static void hid_replay_event(int fuhid, char *buf, ssize_t len, struct timeval *time)
+static void hid_replay_event(int fuhid, char *ubuf, ssize_t len, struct timeval *time)
 {
 	struct uhid_event ev;
 	struct uhid_input_req *input = &ev.u.input;
@@ -105,6 +105,7 @@ static void hid_replay_event(int fuhid, char *buf, ssize_t len, struct timeval *
 	struct timeval ev_time;
 	unsigned long sec;
 	unsigned usec;
+	char *buf = ubuf;
 	int n = sscanf(buf, "E: %lu.%06u %d %[^\n]\n", &sec, &usec, &event_len, buf);
 	if (n != 4)
 		return;
