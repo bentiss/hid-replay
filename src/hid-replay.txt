@@ -27,6 +27,10 @@ OPTIONS
 	_one shot_ mode: the device is created and then the events are replayed
 	once in real time. The process exists at the end of the replay.
 
+*-s, --sleep X*:
+	_sleep_ X seconds once the device is created before next step. Useful
+	in conjunction with *--one*.
+
 DESCRIPTION
 -----------
 *hid-replay* requires the module uhid to be loaded (present in kernels 3.6+).

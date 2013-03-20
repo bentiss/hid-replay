@@ -62,6 +62,7 @@ static int usage(void)
 	printf("   -h or --help: print this message\n");
 	printf("   -i or --interactive: default mode: interactive mode (allow to control and to replay several times)\n");
 	printf("   -1 or --one: play once the events without waiting and then exit\n");
+	printf("   -s X or --sleep X: sleep X seconds once the device is created before next step\n");
 
 	return EXIT_FAILURE;
 }
@@ -73,6 +74,7 @@ enum hid_replay_mode {
 
 static const struct option long_options[] = {
 	{ "help", no_argument, NULL, 'h' },
+	{ "sleep", required_argument, NULL, 's' },
 	{ "one", no_argument, NULL, '1' },
 	{ "interactive", no_argument, NULL, 'i' },
 	{ 0, },
@@ -206,6 +208,7 @@ int main(int argc, char **argv)
 	char line[40];
 	char *hid_file;
 	enum hid_replay_mode mode = MODE_INTERACTIVE;
+	int sleep_time = 0;
 
 	memset(&event, 0, sizeof(event));
 	memset(&dev, 0, sizeof(dev));
@@ -217,7 +220,7 @@ int main(int argc, char **argv)
 
 	while (1) {
 		int option_index = 0;
-		int c = getopt_long(argc, argv, "hi1", long_options, &option_index);
+		int c = getopt_long(argc, argv, "hi1s:", long_options, &option_index);
 		if (c == -1)
 			break;
 		switch (c) {
@@ -226,6 +229,9 @@ int main(int argc, char **argv)
 			break;
 		case 'i':
 			mode = MODE_INTERACTIVE;
+			break;
+		case 's':
+			sleep_time = atoi(optarg);
 			break;
 		default:
 			return usage();
@@ -276,6 +282,9 @@ int main(int argc, char **argv)
 		read(fuhid, &event, sizeof(event));
 		stop = event.type == UHID_OPEN;
 	}
+
+	if (sleep_time)
+		sleep(sleep_time);
 
 	stop = 0;
 	while (!stop) {
