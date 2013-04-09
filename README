@@ -8,4 +8,5 @@ module uhid which is available in kernels v3.6+.
 
 This is mainly for debugging kernel drivers. If your goal
 is just to replay events, have a look at evemu:
-https://launchpad.net/evemu
+http://wiki.freedesktop.org/wiki/Evemu
+
