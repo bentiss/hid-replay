@@ -26,6 +26,8 @@
 #include <config.h>
 #endif
 
+#define _GNU_SOURCE
+
 /* Linux */
 #include <linux/types.h>
 #include <linux/input.h>
