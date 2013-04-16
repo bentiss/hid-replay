@@ -124,8 +124,10 @@ static char* scan_devices(void)
 		snprintf(fname, sizeof(fname),
 			 "%s/%s", DEV_DIR, namelist[i]->d_name);
 		fd = open(fname, O_RDONLY);
-		if (fd < 0)
+		if (fd < 0) {
+			free(namelist[i]);
 			continue;
+		}
 
 		/* Get Raw Name */
 		res = ioctl(fd, HIDIOCGRAWNAME(256), name);
@@ -134,6 +136,8 @@ static char* scan_devices(void)
 		close(fd);
 		free(namelist[i]);
 	}
+
+	free(namelist);
 
 	fprintf(stderr, "Select the device event number [0-%d]: ", ndev - 1);
 	scanf("%d", &devnum);
