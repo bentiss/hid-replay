@@ -152,15 +152,107 @@ static char* scan_devices(void)
 	return filename;
 }
 
+static int fetch_hidraw_information(int fd, struct hidraw_report_descriptor *rpt_desc,
+		struct hidraw_devinfo *info, char *name, char *phys)
+{
+	int i, res, desc_size = 0;
+	memset(rpt_desc, 0x0, sizeof(rpt_desc));
+	memset(info, 0x0, sizeof(info));
+	memset(name, 0x0, 256);
+	memset(phys, 0x0, 256);
+
+	/* Get Report Descriptor Size */
+	res = ioctl(fd, HIDIOCGRDESCSIZE, &desc_size);
+	if (res < 0) {
+		perror("HIDIOCGRDESCSIZE");
+		return EXIT_FAILURE;
+	}
+
+	/* Get Report Descriptor */
+	rpt_desc->size = desc_size;
+	res = ioctl(fd, HIDIOCGRDESC, rpt_desc);
+	if (res < 0) {
+		perror("HIDIOCGRDESC");
+		return EXIT_FAILURE;
+	} else {
+		printf("R: %d", desc_size);
+		for (i = 0; i < rpt_desc->size; i++)
+			printf(" %02hhx", rpt_desc->value[i]);
+		printf("\n");
+	}
+
+	/* Get Raw Name */
+	res = ioctl(fd, HIDIOCGRAWNAME(256), name);
+	if (res < 0) {
+		perror("HIDIOCGRAWNAME");
+		return EXIT_FAILURE;
+	} else
+		printf("N: %s\n", name);
+
+	/* Get Physical Location */
+	res = ioctl(fd, HIDIOCGRAWPHYS(256), phys);
+	if (res < 0) {
+		perror("HIDIOCGRAWPHYS");
+		return EXIT_FAILURE;
+	} else
+		printf("P: %s\n", phys);
+
+	/* Get Raw Info */
+	res = ioctl(fd, HIDIOCGRAWINFO, info);
+	if (res < 0) {
+		perror("HIDIOCGRAWINFO");
+		return EXIT_FAILURE;
+	} else {
+		printf("I: %x %04hx %04hx\n", info->bustype, info->vendor, info->product);
+	}
+
+	return EXIT_SUCCESS;
+}
+
+static void print_currenttime(struct timeval *starttime)
+{
+	struct timeval currenttime;
+	if (!starttime->tv_sec && !starttime->tv_usec)
+		gettimeofday(starttime, NULL);
+	gettimeofday(&currenttime, NULL);
+	timeval_subtract(&currenttime, &currenttime, starttime);
+
+	printf("%lu.%06u", currenttime.tv_sec, (unsigned)currenttime.tv_usec);
+}
+
+static int read_hidraw_event(int fd, struct timeval *starttime)
+{
+	char buf[4096];
+	struct timeval currenttime;
+	int i, res;
+
+	/* Get a report from the device */
+	res = read(fd, buf, sizeof(buf));
+	if (res < 0) {
+		perror("read");
+	} else {
+		printf("E: ");
+		print_currenttime(starttime);
+		printf(" %s", res);
+
+		for (i = 0; i < res; i++)
+			printf(" %02hhx", buf[i]);
+		printf("\n");
+		fflush(stdout);
+	}
+	return res;
+}
+
 int main(int argc, char **argv)
 {
 	int fd;
-	int i, res, desc_size = 0;
-	char buf[4096];
+	int ret;
 	struct hidraw_report_descriptor rpt_desc;
 	struct hidraw_devinfo info;
+	char name[256];
+	char phys[256];
 	char *device;
-	struct timeval starttime, currenttime;
+	struct timeval starttime;
 
 	while (1) {
 		int option_index = 0;
@@ -189,68 +281,15 @@ int main(int argc, char **argv)
 		return EXIT_FAILURE;
 	}
 
-	memset(&rpt_desc, 0x0, sizeof(rpt_desc));
-	memset(&info, 0x0, sizeof(info));
-	memset(buf, 0x0, sizeof(buf));
+	if (fetch_hidraw_information(fd, &rpt_desc, &info, name, phys) != EXIT_SUCCESS)
+		return EXIT_FAILURE;
+
 	memset(&starttime, 0x0, sizeof(starttime));
+	do {
+		ret = read_hidraw_event(fd, &starttime);
+	} while (ret >= 0);
 
-	/* Get Report Descriptor Size */
-	res = ioctl(fd, HIDIOCGRDESCSIZE, &desc_size);
-	if (res < 0)
-		perror("HIDIOCGRDESCSIZE");
-
-	/* Get Report Descriptor */
-	rpt_desc.size = desc_size;
-	res = ioctl(fd, HIDIOCGRDESC, &rpt_desc);
-	if (res < 0) {
-		perror("HIDIOCGRDESC");
-	} else {
-		printf("R: %d", desc_size);
-		for (i = 0; i < rpt_desc.size; i++)
-			printf(" %02hhx", rpt_desc.value[i]);
-		printf("\n");
-	}
-
-	/* Get Raw Name */
-	res = ioctl(fd, HIDIOCGRAWNAME(256), buf);
-	if (res < 0)
-		perror("HIDIOCGRAWNAME");
-	else
-		printf("N: %s\n", buf);
-
-	/* Get Physical Location */
-	res = ioctl(fd, HIDIOCGRAWPHYS(256), buf);
-	if (res < 0)
-		perror("HIDIOCGRAWPHYS");
-	else
-		printf("P: %s\n", buf);
-
-	/* Get Raw Info */
-	res = ioctl(fd, HIDIOCGRAWINFO, &info);
-	if (res < 0) {
-		perror("HIDIOCGRAWINFO");
-	} else {
-		printf("I: %x %04hx %04hx\n", info.bustype, info.vendor, info.product);
-	}
-
-	while (1) {
-		/* Get a report from the device */
-		res = read(fd, buf, sizeof(buf));
-		if (res < 0) {
-			perror("read");
-			break;
-		} else {
-			if (!starttime.tv_sec && !starttime.tv_usec)
-				gettimeofday(&starttime, NULL);
-			gettimeofday(&currenttime, NULL);
-			timeval_subtract(&currenttime, &currenttime, &starttime);
-			printf("E: %lu.%06u %d", currenttime.tv_sec, (unsigned)currenttime.tv_usec, res);
-			for (i = 0; i < res; i++)
-				printf(" %02hhx", buf[i]);
-			printf("\n");
-			fflush(stdout);
-		}
-	}
+out:
 	close(fd);
-	return 0;
+	return ret;
 }
