@@ -56,6 +56,10 @@ extern char *program_invocation_short_name;
 #define DEV_DIR "/dev"
 #define HIDRAW_DEV_NAME "hidraw"
 
+#define HID_DBG_DIR "/sys/kernel/debug/hid"
+#define HID_DBG_RDESC "rdesc"
+#define HID_DBG_events "events"
+
 /**
  * Print usage information.
  */
@@ -152,6 +156,73 @@ static char* scan_devices(void)
 	return filename;
 }
 
+static int rdesc_match(struct hidraw_report_descriptor *rpt_desc, const char *str, int size)
+{
+	int i;
+	int rdesc_size_str = (size - 1) / 3; /* remove terminating \0,
+						2 chars per u8 + space (or \n for the last) */
+
+	if (rdesc_size_str != rpt_desc->size)
+		return 0;
+
+	for (i = 0; i < rdesc_size_str; i++) {
+		__u8 v;
+		sscanf(&str[i*3], "%hhx ", &v);
+		if (v != rpt_desc->value[i])
+			break;
+	}
+
+	return i == rdesc_size_str;
+}
+
+static char* find_hid_dbg(struct hidraw_devinfo *info, struct hidraw_report_descriptor *rpt_desc)
+{
+	struct dirent **namelist;
+	int i, ndev;
+	char *filename = NULL;
+	char target_name[16];
+	char *buf_read = NULL;
+	size_t buf_size = 0;
+
+	snprintf(target_name, sizeof(target_name),
+		 "%04d:%04X:%04X:", info->bustype, info->vendor, info->product);
+
+	ndev = scandir(HID_DBG_DIR, &namelist, NULL, alphasort);
+	if (ndev <= 0)
+		return NULL;
+
+	for (i = 0; i < ndev; i++)
+	{
+		char fname[256];
+		FILE *file;
+		char name[256] = "???";
+		int size;
+
+		snprintf(fname, sizeof(fname),
+			 "%s/%s/rdesc", HID_DBG_DIR, namelist[i]->d_name);
+		file = fopen(fname, "r");
+		if (!file) {
+			free(namelist[i]);
+			continue;
+		}
+
+		/* Get Report Descriptor */
+		size = getline(&buf_read, &buf_size, file);
+		if (rdesc_match(rpt_desc, buf_read, size)) {
+			filename = malloc(256);
+			snprintf(filename, 256,
+				 "%s/%s/events", HID_DBG_DIR, namelist[i]->d_name);
+		}
+		fclose(file);
+		free(namelist[i]);
+	}
+
+	free(namelist);
+	free(buf_read);
+
+	return filename;
+}
+
 static int fetch_hidraw_information(int fd, struct hidraw_report_descriptor *rpt_desc,
 		struct hidraw_devinfo *info, char *name, char *phys)
 {
@@ -220,6 +291,42 @@ static void print_currenttime(struct timeval *starttime)
 	printf("%lu.%06u", currenttime.tv_sec, (unsigned)currenttime.tv_usec);
 }
 
+static int read_hiddbg_event(FILE *file, struct timeval *starttime,
+		char **buf_read, char **buf_write, size_t *buf_size)
+{
+	int size;
+	int old_buf_size = *buf_size;
+
+	/* Get a report from the device */
+	size = getline(buf_read, buf_size, file);
+	if (size < 0) {
+		perror("read");
+		return size;
+	}
+
+	if (old_buf_size != *buf_size) {
+		if (old_buf_size)
+			*buf_write = realloc(*buf_write, *buf_size);
+		else
+			*buf_write = malloc(*buf_size);
+		if (!*buf_write) {
+			perror("memory allocation");
+			return -1;
+		}
+	}
+
+	if (size > 8 && strncmp(*buf_read, "report ", 7) == 0) {
+		int rsize;
+		char numbered[16];
+		sscanf(*buf_read, "report (size %d) (%[^)]) = %[^\n]\n", &rsize, numbered, *buf_write);
+		printf("E: ");
+		print_currenttime(starttime);
+		printf(" %d %s\n", rsize, *buf_write);
+		fflush(stdout);
+	}
+	return size;
+}
+
 static int read_hidraw_event(int fd, struct timeval *starttime)
 {
 	char buf[4096];
@@ -252,7 +359,12 @@ int main(int argc, char **argv)
 	char name[256];
 	char phys[256];
 	char *device;
+	char *hid_dbg_event;
 	struct timeval starttime;
+	FILE *hid_dbg_file = NULL;
+	char *buf_read = NULL;
+	char *buf_write = NULL;
+	size_t buf_size = 0;
 
 	while (1) {
 		int option_index = 0;
@@ -284,12 +396,37 @@ int main(int argc, char **argv)
 	if (fetch_hidraw_information(fd, &rpt_desc, &info, name, phys) != EXIT_SUCCESS)
 		return EXIT_FAILURE;
 
+	/* try to use hid debug sysfs instead of hidraw to retrieve the events */
+	hid_dbg_event = find_hid_dbg(&info, &rpt_desc);
+	if (hid_dbg_event) {
+		fprintf(stderr, "reading debug interface %s instead of %s\n",
+			hid_dbg_event, device);
+		/* keep fd opened to keep the device powered */
+		hid_dbg_file = fopen(hid_dbg_event, "r");
+		if (!hid_dbg_file) {
+			perror("Unable to open HID debug interface");
+			ret = EXIT_FAILURE;
+			goto out;
+		}
+	}
+
 	memset(&starttime, 0x0, sizeof(starttime));
 	do {
-		ret = read_hidraw_event(fd, &starttime);
+		if (hid_dbg_file)
+			ret = read_hiddbg_event(hid_dbg_file, &starttime, &buf_read, &buf_write, &buf_size);
+		else
+			ret = read_hidraw_event(fd, &starttime);
 	} while (ret >= 0);
 
 out:
+	if (hid_dbg_event)
+		free(hid_dbg_event);
+	if (hid_dbg_file)
+		fclose(hid_dbg_file);
+	if (buf_size) {
+		free(buf_read);
+		free(buf_write);
+	}
 	close(fd);
 	return ret;
 }
