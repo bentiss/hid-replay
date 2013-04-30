@@ -60,19 +60,30 @@ extern char *program_invocation_short_name;
 #define HID_DBG_RDESC "rdesc"
 #define HID_DBG_events "events"
 
+enum hid_recorder_mode {
+	MODE_HIDRAW,
+	MODE_HID_DEBUGFS,
+};
+
 /**
  * Print usage information.
  */
 static int usage(void)
 {
 	printf("USAGE:\n");
-	printf("   %s [/dev/hidrawX]\n", program_invocation_short_name);
+	printf("   %s [OPTION] [/dev/hidrawX]\n", program_invocation_short_name);
 
+	printf("\n");
+	printf("where OPTION is either:\n");
+	printf("   -h or --help: print this message\n");
+	printf("   -d or --debugfs: use HID debugfs instead of hidraw node (use this when\n"
+		"                    no events are coming from hidraw while using the device)\n");
 	return EXIT_FAILURE;
 }
 
 static const struct option long_options[] = {
 	{ "help", no_argument, NULL, 'h' },
+	{ "debugfs", no_argument, NULL, 'd' },
 	{ 0, },
 };
 
@@ -359,19 +370,26 @@ int main(int argc, char **argv)
 	char name[256];
 	char phys[256];
 	char *device;
-	char *hid_dbg_event;
+	char *hid_dbg_event = NULL;
 	struct timeval starttime;
 	FILE *hid_dbg_file = NULL;
 	char *buf_read = NULL;
 	char *buf_write = NULL;
 	size_t buf_size = 0;
+	enum hid_recorder_mode mode = MODE_HIDRAW;
 
 	while (1) {
 		int option_index = 0;
-		int c = getopt_long(argc, argv, "h", long_options, &option_index);
+		int c = getopt_long(argc, argv, "hd", long_options, &option_index);
 		if (c == -1)
 			break;
-		return usage();
+		switch (c) {
+		case 'd':
+			mode = MODE_HID_DEBUGFS;
+			break;
+		default:
+			return usage();
+		}
 	}
 
 	if (optind < argc)
@@ -397,7 +415,9 @@ int main(int argc, char **argv)
 		return EXIT_FAILURE;
 
 	/* try to use hid debug sysfs instead of hidraw to retrieve the events */
-	hid_dbg_event = find_hid_dbg(&info, &rpt_desc);
+	if (mode == MODE_HID_DEBUGFS)
+		hid_dbg_event = find_hid_dbg(&info, &rpt_desc);
+
 	if (hid_dbg_event) {
 		fprintf(stderr, "reading debug interface %s instead of %s\n",
 			hid_dbg_event, device);

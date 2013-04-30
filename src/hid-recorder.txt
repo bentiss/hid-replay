@@ -11,7 +11,18 @@ SYNOPSIS
 --------
 *hid-recorder*
 
-*hid-recorder* /dev/hidrawX
+*hid-recorder* [OPTIONS] [/dev/hidrawX]
+
+OPTIONS
+-------
+
+*-d, --debugfs*::
+	use HID debugfs node. Some devices (like "Logitech USB Receiver" or
+	"Apple Magic Mouse") grabs the hidraw output leading to an empty output.
+	Fortunately, relying on HID debugfs can help us most of the time.
+	However, if hte device does report two many events at once (multitouch
+	panles for example), the HID debugfs node is missing a lot of events,
+	preventing us to make this the default behaviour.
 
 DESCRIPTION
 -----------
