@@ -42,6 +42,7 @@
 #include <unistd.h>
 #include <getopt.h>
 #include <dirent.h>
+#include <signal.h>
 
 /* C */
 #include <stdio.h>
@@ -64,6 +65,14 @@ enum hid_recorder_mode {
 	MODE_HIDRAW,
 	MODE_HID_DEBUGFS,
 };
+
+struct hid_recorder_state {
+	enum hid_recorder_mode mode;
+	int event_count;
+};
+
+/* global because used in signal handler */
+static struct hid_recorder_state state = {0};
 
 /**
  * Print usage information.
@@ -361,6 +370,22 @@ static int read_hidraw_event(int fd, struct timeval *starttime)
 	return res;
 }
 
+static void exit_recording_message()
+{
+	if (!state.event_count)
+		fprintf(stderr, "\nNo events where recorded.\n"
+				"You may need to %s the option \"--debugfs\" to get more recordings.\n",
+			state.mode == MODE_HIDRAW ? "add" : "remove");
+}
+
+static void signal_callback_handler(int signum)
+{
+	exit_recording_message();
+
+	/* Terminate program */
+	exit(signum);
+}
+
 int main(int argc, char **argv)
 {
 	int fd;
@@ -376,7 +401,8 @@ int main(int argc, char **argv)
 	char *buf_read = NULL;
 	char *buf_write = NULL;
 	size_t buf_size = 0;
-	enum hid_recorder_mode mode = MODE_HIDRAW;
+
+	state.mode = MODE_HIDRAW;
 
 	while (1) {
 		int option_index = 0;
@@ -385,7 +411,7 @@ int main(int argc, char **argv)
 			break;
 		switch (c) {
 		case 'd':
-			mode = MODE_HID_DEBUGFS;
+			state.mode = MODE_HID_DEBUGFS;
 			break;
 		default:
 			return usage();
@@ -415,7 +441,7 @@ int main(int argc, char **argv)
 		return EXIT_FAILURE;
 
 	/* try to use hid debug sysfs instead of hidraw to retrieve the events */
-	if (mode == MODE_HID_DEBUGFS)
+	if (state.mode == MODE_HID_DEBUGFS)
 		hid_dbg_event = find_hid_dbg(&info, &rpt_desc);
 
 	if (hid_dbg_event) {
@@ -430,13 +456,20 @@ int main(int argc, char **argv)
 		}
 	}
 
+	signal(SIGINT, signal_callback_handler);
+
 	memset(&starttime, 0x0, sizeof(starttime));
 	do {
 		if (hid_dbg_file)
 			ret = read_hiddbg_event(hid_dbg_file, &starttime, &buf_read, &buf_write, &buf_size);
 		else
 			ret = read_hidraw_event(fd, &starttime);
+		state.event_count++;
 	} while (ret >= 0);
+
+	state.event_count--; /* error during last record */
+
+	exit_recording_message();
 
 out:
 	if (hid_dbg_event)
