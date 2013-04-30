@@ -340,7 +340,7 @@ static int read_hidraw_event(int fd, struct timeval *starttime)
 	} else {
 		printf("E: ");
 		print_currenttime(starttime);
-		printf(" %s", res);
+		printf(" %d", res);
 
 		for (i = 0; i < res; i++)
 			printf(" %02hhx", buf[i]);
