@@ -343,8 +343,10 @@ static int read_hiddbg_event(FILE *file, struct timeval *starttime,
 		print_currenttime(starttime);
 		printf(" %d %s\n", rsize, *buf_write);
 		fflush(stdout);
+		return size;
 	}
-	return size;
+
+	return 0; /* not a raw report */
 }
 
 static int read_hidraw_event(int fd, struct timeval *starttime)
@@ -464,10 +466,9 @@ int main(int argc, char **argv)
 			ret = read_hiddbg_event(hid_dbg_file, &starttime, &buf_read, &buf_write, &buf_size);
 		else
 			ret = read_hidraw_event(fd, &starttime);
-		state.event_count++;
+		if (ret > 0)
+			state.event_count++;
 	} while (ret >= 0);
-
-	state.event_count--; /* error during last record */
 
 	exit_recording_message();
 
