@@ -60,7 +60,8 @@ def dump_report(time, report, rdesc, mt):
 			usage = hid.inv_usages[usage]
 		else:
 			usage = "0x{:04x}".format(usage)
-		print sep, usage + ':', value,
+		value_format = "{:" + str(len(str(1<<size)) + 1) + "d}"
+		print sep, usage + ':', value_format.format(value),
 		sep = '|'
 	print ""
 
