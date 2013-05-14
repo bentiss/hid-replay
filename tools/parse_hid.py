@@ -38,6 +38,8 @@ def dump_report(time, report, rdesc, mt):
 	if len(rdesc.keys()) == 1:
 		report_descriptor = rdesc[-1]
 	else:
+		print "ReportID:", report[0],
+		sep = '/'
 		report_descriptor = rdesc[report[0]]
 		total_bit_offset = 8 # first byte is report ID, actual data starts at 8
 	for usage, size in report_descriptor:
