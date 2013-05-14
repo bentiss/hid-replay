@@ -30,11 +30,17 @@ def dump_report(time, report, rdesc, mt):
 	Currently only multitouch reports are processed.
 	"""
 	data = []
-	total_bit_offset = 8 # first byte is report ID, actual data starts at 8
+	total_bit_offset = 0
 
 	print time,
 	sep = ''
-	for usage, size in rdesc[report[0]]:
+	report_descriptor = None
+	if len(rdesc.keys()) == 1:
+		report_descriptor = rdesc[-1]
+	else:
+		report_descriptor = rdesc[report[0]]
+		total_bit_offset = 8 # first byte is report ID, actual data starts at 8
+	for usage, size in report_descriptor:
 		value = 0
 		start_bit = total_bit_offset
 		end_bit = start_bit + size
