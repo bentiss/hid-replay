@@ -71,6 +71,7 @@ def dump_report(time, report, rdesc, mt):
 		sep = '/'
 		report_descriptor = rdesc[report[0]]
 		total_bit_offset = 8 # first byte is report ID, actual data starts at 8
+	prev = None
 	for report_item in report_descriptor:
 		size = report_item["size"]
 		array = not (report_item["type"] & (0x1 << 1)) # Variable
@@ -89,6 +90,9 @@ def dump_report(time, report, rdesc, mt):
 			if size > 1:
 				value_format = "{:" + str(len(str(1<<size)) + 1) + "d}"
 			usage = " " + get_usage(report_item["usage"]) + ':'
+			if prev and prev["type"] == report_item["type"] and prev["usage"] == report_item["usage"]:
+				sep = ","
+				usage = ""
 			print sep + usage, value_format.format(values[0]),
 		else:
 			name = "Array"
@@ -97,6 +101,7 @@ def dump_report(time, report, rdesc, mt):
 				name = hid.inv_usage_pages[usage_page]
 			print sep, name, [get_usage(v | usage_page << 16) for v in values],
 		sep = '|'
+		prev = report_item
 	print ""
 
 def main():
