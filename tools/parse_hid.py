@@ -30,9 +30,6 @@ def dump_report(time, report, rdesc, mt):
 	Currently only multitouch reports are processed.
 	"""
 	data = []
-	if report[0] != mt:
-		# not multitouch report related
-		return
 	total_bit_offset = 8 # first byte is report ID, actual data starts at 8
 
 	print time,
