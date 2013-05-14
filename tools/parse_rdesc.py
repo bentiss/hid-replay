@@ -58,6 +58,8 @@ def dump_rdesc_array(r, hid, item, raw_value, value, up, offset, indent):
 
 	descr = '  ' * indent + item
 	if item in ("Report ID",
+		    "Usage Minimum",
+		    "Usage Maximum",
 		    "Logical Minimum",
 		    "Logical Maximum",
 		    "Physical Minimum",
