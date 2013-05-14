@@ -24,6 +24,22 @@ import sys
 import parse_rdesc
 import hid
 
+def get_value(report, start, size):
+	value = 0
+	start_bit = start
+	end_bit = start_bit + size
+	data = report[start_bit / 8 : end_bit / 8 + 1]
+	for d in xrange(len(data)):
+		value |= data[d] << (8 * d)
+
+	bit_offset = start % 8
+	value = value >> bit_offset
+	garbage = (value >> size) << size
+	value = value - garbage
+	if size > 1:
+		value = parse_rdesc.twos_comp(value, size)
+	return value, end_bit
+
 def dump_report(time, report, rdesc, mt):
 	"""
 	Translate the given report to a human readable format.
@@ -43,19 +59,9 @@ def dump_report(time, report, rdesc, mt):
 		report_descriptor = rdesc[report[0]]
 		total_bit_offset = 8 # first byte is report ID, actual data starts at 8
 	for usage, size in report_descriptor:
-		value = 0
-		start_bit = total_bit_offset
-		end_bit = start_bit + size
-		data = report[start_bit / 8 : end_bit / 8 + 1]
-		for d in xrange(len(data)):
-			value |= data[d] << (8 * d)
+		# get the value and consumes bits
+		value, total_bit_offset = get_value(report, total_bit_offset, size)
 
-		bit_offset = total_bit_offset % 8
-		value = value >> bit_offset
-		garbage = (value >> size) << size
-		value = value - garbage
-		value = parse_rdesc.twos_comp(value, size)
-		total_bit_offset = end_bit
 		if hid.inv_usages.has_key(usage):
 			usage = hid.inv_usages[usage]
 		else:
