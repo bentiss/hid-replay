@@ -24,6 +24,12 @@ import sys
 import re
 from hid import *
 
+def twos_comp(val, bits):
+	"""compute the 2's compliment of int value val"""
+	if (val & (1 << (bits - 1))) != 0:
+		val = val - (1 << bits)
+	return val
+
 def dump_rdesc(r, hid, item, raw_value, value, up, offset, indent):
 	"""
 	Format the hid item in a lsusb -v format.
@@ -126,8 +132,7 @@ def dump_rdesc_array(r, hid, item, raw_value, value, up, offset, indent):
 		descr +=  " ("
 		for i in xrange(len(units), 0, -1):
 			v = (value >> i*4) & 0xf
-			if v > 7:
-				v -= 16
+			v = twos_comp(v, 4)
 			if v:
 				descr += units[i - 1][system]
 				if v != 1:
@@ -181,6 +186,12 @@ def parse_rdesc(rdesc_str, show = False):
 		for i in xrange(rsize, 0, -1):
 			raw_value.append(rdesc[index + i])
 			value |= rdesc[index + i] << (i-1)*8;
+
+		if rsize > 0 and item in ("Logical Minimum",
+					  "Logical Maximum",
+					  "Physical Minimum",
+					  "Physical Maximum"):
+			value = twos_comp(value, rsize * 8)
 
 		if item == "Unit Exponent":
 			if value > 7:

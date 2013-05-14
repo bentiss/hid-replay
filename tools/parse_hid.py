@@ -49,6 +49,7 @@ def dump_report(time, report, rdesc, mt):
 		value = value >> bit_offset
 		garbage = (value >> size) << size
 		value = value - garbage
+		value = parse_rdesc.twos_comp(value, size)
 		total_bit_offset = end_bit
 		if hid.inv_usages.has_key(usage):
 			usage = hid.inv_usages[usage]
