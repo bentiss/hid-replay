@@ -24,6 +24,19 @@ import sys
 import parse_rdesc
 import hid
 
+def get_usage(usage):
+	if usage == 0x70000:
+		return ""
+	usage_page = usage >> 16
+	if hid.inv_usage_pages.has_key(usage_page) and \
+			hid.inv_usage_pages[usage_page] == "Button":
+		usage = "B" + str(usage & 0xFF)
+	elif hid.inv_usages.has_key(usage):
+		usage = hid.inv_usages[usage]
+	else:
+		usage = "0x{:04x}".format(usage)
+	return usage
+
 def get_value(report, start, size):
 	value = 0
 	start_bit = start
@@ -58,16 +71,31 @@ def dump_report(time, report, rdesc, mt):
 		sep = '/'
 		report_descriptor = rdesc[report[0]]
 		total_bit_offset = 8 # first byte is report ID, actual data starts at 8
-	for usage, size in report_descriptor:
-		# get the value and consumes bits
-		value, total_bit_offset = get_value(report, total_bit_offset, size)
+	for report_item in report_descriptor:
+		size = report_item["size"]
+		array = not (report_item["type"] & (0x1 << 1)) # Variable
+		const = report_item["type"] & (0x1 << 0)
+		values = []
 
-		if hid.inv_usages.has_key(usage):
-			usage = hid.inv_usages[usage]
+		# get the value and consumes bits
+		for i in xrange(report_item["count"]):
+			value, total_bit_offset = get_value(report, total_bit_offset, size)
+			values.append(value)
+
+		if const:
+			print sep, '#',
+		elif not array:
+			value_format = "{:d}"
+			if size > 1:
+				value_format = "{:" + str(len(str(1<<size)) + 1) + "d}"
+			usage = " " + get_usage(report_item["usage"]) + ':'
+			print sep + usage, value_format.format(values[0]),
 		else:
-			usage = "0x{:04x}".format(usage)
-		value_format = "{:" + str(len(str(1<<size)) + 1) + "d}"
-		print sep, usage + ':', value_format.format(value),
+			name = "Array"
+			usage_page = report_item["usage page"] >> 16
+			if hid.inv_usage_pages.has_key(usage_page):
+				name = hid.inv_usage_pages[usage_page]
+			print sep, name, [get_usage(v | usage_page << 16) for v in values],
 		sep = '|'
 	print ""
 

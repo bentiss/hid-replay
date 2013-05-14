@@ -163,6 +163,8 @@ def parse_rdesc(rdesc_str, show = False):
 	usage_page = 0
 	usage_page_list = []
 	usage = []
+	usage_min = 0
+	usage_max = 0
 	count = 0
 	size = 0
 	report = []
@@ -213,6 +215,19 @@ def parse_rdesc(rdesc_str, show = False):
 			usage_page = usage_page_list.pop()
 		elif item == "Usage Page":
 			usage_page = value << 16
+			# reset the usage list
+			usage = []
+			usage_min = 0
+			usage_max = 0
+		elif item == "Collection":
+			# reset the usage list
+			usage = []
+			usage_min = 0
+			usage_max = 0
+		elif item == "Usage Minimum":
+			usage_min = value | usage_page
+		elif item == "Usage Maximum":
+			usage_max = value | usage_page
 		elif item == "Usage":
 			usage.append(value | usage_page)
 			if value | usage_page == 0xd0051:
@@ -221,18 +236,29 @@ def parse_rdesc(rdesc_str, show = False):
 			count = value
 		elif item == "Report Size":
 			size = value
-		elif item == "Input":
-			if len(usage) == 0:
-				usage = 0
-			elif len(usage) == count:
-				for i in xrange(count):
-					report.append((usage[i], size))
-				usage = []
-				continue
-			else:
-				usage = usage[-1]
-			report.append((usage, count * size))
+		elif item == "Input": # or item == "Output":
+			if value & (0x1 << 0): # Const item
+				report.append({"type": value, "size": size * count, "count": 1})
+			elif value & (0x1 << 1): # Variable item
+				if usage_min and usage_max:
+					usage = usage_min
+					for i in xrange(count):
+						report.append({"type": value, "usage": usage, "size": size, "count": 1})
+						if usage < usage_max:
+							usage += 1
+				else:
+					for i in xrange(count):
+						usage_ = 0
+						if i < len(usage):
+							usage_ = usage[i]
+						else:
+							usage_ = usage[-1]
+						report.append({"type": value, "usage": usage_, "size": size, "count": 1})
+			else: # Array item
+				report.append({"type": value, "usage page": usage_page, "usage min": usage_min, "usage max": usage_max, "count": count, "size": size})
 			usage = []
+			usage_min = 0
+			usage_max = 0
 		elif item == "Feature":
 			if usage[-1] == 0xff0000c5:
 				win8 = True
