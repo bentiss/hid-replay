@@ -61,7 +61,7 @@ def dump_report(time, report, rdesc, mt):
 	data = []
 	total_bit_offset = 0
 
-	print time,
+	print "{:>10s}".format(time),
 	sep = ''
 	report_descriptor = None
 	if len(rdesc.keys()) == 1:
