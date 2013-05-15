@@ -1,0 +1,56 @@
+(13)	Digitizers
+00	Undefined
+01	Digitizer
+02	Pen
+03	Light Pen
+04	Touch Screen
+05	Touch Pad
+06	White Board
+07	Coordinate Measuring Machine
+08	3-D Digitizer
+09	Stereo Plotter
+0A	Articulated Arm
+0B	Armature
+0C	Multiple Point Digitizer
+0D	Free Space Wand
+0E	Device Configuration
+0F-1F	Reserved
+20	Stylus
+21	Puck
+22	Finger
+23	Device Settings
+24-2F	Reserved
+30	Tip Pressure
+31	Barrel Pressure
+32	In Range
+33	Touch
+34	Untouch
+35	Tap
+36	Quality
+37	Data Valid
+38	Transducer Index
+39	Tablet Function Keys
+3A	Program Change Keys
+3B	Battery Strength
+3C	Invert
+3D	X Tilt
+3E	Y Tilt
+3F	Azimuth
+40	Altitude
+41	Twist
+42	Tip Switch
+43	Secondary Tip Switch
+44	Barrel Switch
+45	Eraser
+46	Tablet Pick
+47	Confidence
+48	Width
+49	Height
+4A-50	Reserved
+51	Contact Id
+52	Inputmode
+53	Device Index
+54	Contact Count
+55	Contact Max
+56	Scan Time
+57-FFFF	Reserved

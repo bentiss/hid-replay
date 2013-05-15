@@ -1,0 +1,92 @@
+(32)	Sensor
+00	Undefined
+01	Sensor
+02-0F	Reserved
+10	Biometric
+11	Biometric Human Presence
+12	Biometric Human Proximity
+13	Biometric Human Touch
+14-1F	Reserved
+20	Electrical
+21	Electrical Capacitance
+22	Electrical Current
+23	Electrical Power
+24	Electrical Inductance
+25	Electrical Resistance
+26	Electrical Voltage
+27	Electrical Potentiometer
+28	Electrical Frequency
+29	Electrical Period
+2A-2F	Reserved
+30	Environmental
+31	Environmental Atmospheric Pressure
+32	Environmental Humidity
+33	Environmental Temperature
+34	Environmental Wind Direction
+35	Environmental Wind Speed
+36-3F	Reserved
+40	Light
+41	Light Ambient Light
+42	Light Consumer Infrared
+43-4F	Reserved
+50	Location
+51	Location Broadcast
+52	Location Dead Reckoning
+53	Location GPS
+54	Location Lookup
+55	Location Other
+56	Location Static
+57	Location Triangulation
+58-5F	Reserved
+60	Mechanical
+61	Mechanical Boolean Switch
+62	Mechanical Boolean Switch Array
+63	Mechanical Multivalue Switch
+64	Mechanical Force
+65	Mechanical Pressure
+66	Mechanical Strain
+67	Mechanical Weight
+68	Mechanical Haptic Vibrator
+69	Mechanical Hall Effect Switch
+6A-6F	Reserved
+70	Motion
+71	Motion Accelerometer 1D
+72	Motion Accelerometer 2D
+73	Motion Accelerometer 3D
+74	Motion Gyrometer 1D
+75	Motion Gyrometer 2D
+76	Motion Gyrometer 3D
+77	Motion Motion Detector
+78	Motion Speedometer
+79	Motion Accelerometer
+7A	Motion Gyrometer
+7B-7F	Reserved
+80	Orientation
+81	Orientation Compass 1D
+82	Orientation Compass 2D
+83	Orientation Compass 3D
+84	Orientation Inclinometer 1D
+85	Orientation Inclinometer 2D
+86	Orientation Inclinometer 3D
+87	Orientation Distance 1D
+88	Orientation Distance 2D
+89	Orientation Distance 3D
+8A	Orientation Device Orientation
+8B	Orientation Compass
+8C	Orientation Inclinometer
+8D	Orientation Distance
+8E-8F	Reserved
+90	Scanner
+91	Scanner Barcode
+92	Scanner RFID
+93	Scanner NFC
+94-9F	Reserved
+A0	Time
+A1	Time Alarm Timer
+A2	Time Real Time Clock
+A3-DF	Reserved
+E0	Other
+E1	Other Custom
+E2	Other Generic
+E3	Other Generic Enumerator
+E4-FFFF	Reserved
