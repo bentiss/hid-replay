@@ -165,6 +165,8 @@ def parse_rdesc(rdesc_str, show = False):
 	usage = []
 	usage_min = 0
 	usage_max = 0
+	logical_min = 0
+	logical_max = 0
 	count = 0
 	size = 0
 	report = []
@@ -228,6 +230,10 @@ def parse_rdesc(rdesc_str, show = False):
 			usage_min = value | usage_page
 		elif item == "Usage Maximum":
 			usage_max = value | usage_page
+		elif item == "Logical Minimum":
+			logical_min = value
+		elif item == "Logical Maximum":
+			logical_max = value
 		elif item == "Usage":
 			usage.append(value | usage_page)
 			if value | usage_page == 0xd0051:
@@ -255,7 +261,9 @@ def parse_rdesc(rdesc_str, show = False):
 							usage_ = usage[-1]
 						report.append({"type": value, "usage": usage_, "size": size, "count": 1})
 			else: # Array item
-				report.append({"type": value, "usage page": usage_page, "usage min": usage_min, "usage max": usage_max, "count": count, "size": size})
+				if usage_min and usage_max:
+					usage = range(usage_min, usage_max + 1)
+				report.append({"type": value, "usage page": usage_page, "usages": usage, "logical min": logical_min, "logical max": logical_max, "count": count, "size": size})
 			usage = []
 			usage_min = 0
 			usage_max = 0

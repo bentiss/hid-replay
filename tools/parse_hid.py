@@ -99,7 +99,13 @@ def dump_report(time, report, rdesc, mt):
 			usage_page = report_item["usage page"] >> 16
 			if hid.inv_usage_pages.has_key(usage_page):
 				name = hid.inv_usage_pages[usage_page]
-			print sep, name, [get_usage(v | usage_page << 16) for v in values],
+			usages = []
+			for v in values:
+				if v < report_item["logical min"] or v > report_item["logical max"]:
+					usages.append('')
+				else:
+					usages.append(get_usage(report_item["usages"][v]))
+			print sep, name, usages,
 		sep = '|'
 		prev = report_item
 	print ""
