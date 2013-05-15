@@ -35,7 +35,7 @@ def get_usage(usage):
 		usage = "0x{:04x}".format(usage)
 	return usage
 
-def get_value(report, start, size):
+def get_value(report, start, size, twos_comp):
 	value = 0
 	start_bit = start
 	end_bit = start_bit + size
@@ -47,7 +47,7 @@ def get_value(report, start, size):
 	value = value >> bit_offset
 	garbage = (value >> size) << size
 	value = value - garbage
-	if size > 1:
+	if twos_comp and size > 1:
 		value = parse_rdesc.twos_comp(value, size)
 	return value, end_bit
 
@@ -75,14 +75,14 @@ def dump_report(time, report, rdesc, mt):
 		array = not (report_item["type"] & (0x1 << 1)) # Variable
 		const = report_item["type"] & (0x1 << 0)
 		values = []
-		usage_page_name = None
+		usage_page_name = ''
 		usage_page = report_item["usage page"] >> 16
 		if hid.inv_usage_pages.has_key(usage_page):
 			usage_page_name = hid.inv_usage_pages[usage_page]
 
 		# get the value and consumes bits
 		for i in xrange(report_item["count"]):
-			value, total_bit_offset = get_value(report, total_bit_offset, size)
+			value, total_bit_offset = get_value(report, total_bit_offset, size, 'vendor' not in usage_page_name.lower())
 			values.append(value)
 
 		if const:
@@ -104,9 +104,11 @@ def dump_report(time, report, rdesc, mt):
 				if v < report_item["logical min"] or v > report_item["logical max"]:
 					usages.append('')
 				else:
-					usage = get_usage(report_item["usages"][v])
-					if "no event indicated" in usage.lower():
-						usage = ''
+					usage = "{:02x}".format(v)
+					if 'vendor' not in usage_page_name.lower():
+						usage = get_usage(report_item["usages"][v])
+						if "no event indicated" in usage.lower():
+							usage = ''
 					usages.append(usage)
 			print sep, usage_page_name, "[" + ", ".join(usages) + "]",
 		sep = '|'
