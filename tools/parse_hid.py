@@ -75,6 +75,10 @@ def dump_report(time, report, rdesc, mt):
 		array = not (report_item["type"] & (0x1 << 1)) # Variable
 		const = report_item["type"] & (0x1 << 0)
 		values = []
+		usage_page_name = None
+		usage_page = report_item["usage page"] >> 16
+		if hid.inv_usage_pages.has_key(usage_page):
+			usage_page_name = hid.inv_usage_pages[usage_page]
 
 		# get the value and consumes bits
 		for i in xrange(report_item["count"]):
@@ -93,10 +97,8 @@ def dump_report(time, report, rdesc, mt):
 				usage = ""
 			print sep + usage, value_format.format(values[0]),
 		else:
-			name = "Array"
-			usage_page = report_item["usage page"] >> 16
-			if hid.inv_usage_pages.has_key(usage_page):
-				name = hid.inv_usage_pages[usage_page]
+			if not usage_page_name:
+				usage_page_name = "Array"
 			usages = []
 			for v in values:
 				if v < report_item["logical min"] or v > report_item["logical max"]:
@@ -106,7 +108,7 @@ def dump_report(time, report, rdesc, mt):
 					if "no event indicated" in usage.lower():
 						usage = ''
 					usages.append(usage)
-			print sep, name, usages,
+			print sep, usage_page_name, "[" + ", ".join(usages) + "]",
 		sep = '|'
 		prev = report_item
 	print ""
