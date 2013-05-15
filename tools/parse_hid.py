@@ -105,9 +105,15 @@ def dump_report(time, report, rdesc, mt):
 	print ""
 
 def main():
-	f = open(sys.argv[1])
+	f = sys.stdin
+	if len(sys.argv) > 1:
+		f = open(sys.argv[1])
 	r = None
-	for line in f.readlines():
+	while True:
+		try:
+			line = f.readline()
+		except KeyboardInterrupt:
+			break
 		if line.startswith("R:"):
 			rdesc, mt, win8 = parse_rdesc.parse_rdesc(line.lstrip("R: "), True)
 			if win8:
@@ -116,6 +122,9 @@ def main():
 			e, time, size, report = line.split(' ', 3)
 			report = [ int(item, 16) for item in report.split(' ')]
 			dump_report(time, report, rdesc, mt)
+		elif line == '':
+			# End of file
+			break
 	f.close()
 
 if __name__ == "__main__":
