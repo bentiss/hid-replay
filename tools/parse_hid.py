@@ -25,8 +25,6 @@ import parse_rdesc
 import hid
 
 def get_usage(usage):
-	if usage == 0x70000:
-		return ""
 	usage_page = usage >> 16
 	if hid.inv_usage_pages.has_key(usage_page) and \
 			hid.inv_usage_pages[usage_page] == "Button":
@@ -104,7 +102,10 @@ def dump_report(time, report, rdesc, mt):
 				if v < report_item["logical min"] or v > report_item["logical max"]:
 					usages.append('')
 				else:
-					usages.append(get_usage(report_item["usages"][v]))
+					usage = get_usage(report_item["usages"][v])
+					if "no event indicated" in usage.lower():
+						usage = ''
+					usages.append(usage)
 			print sep, name, usages,
 		sep = '|'
 		prev = report_item
