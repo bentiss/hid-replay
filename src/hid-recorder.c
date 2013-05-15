@@ -297,6 +297,8 @@ static int fetch_hidraw_information(int fd, struct hidraw_report_descriptor *rpt
 		printf("I: %x %04hx %04hx\n", info->bustype, info->vendor, info->product);
 	}
 
+	fflush(stdout);
+
 	return EXIT_SUCCESS;
 }
 
