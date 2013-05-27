@@ -82,7 +82,7 @@ def dump_report(time, report, rdesc, mt):
 
 		# get the value and consumes bits
 		for i in xrange(report_item["count"]):
-			value, total_bit_offset = get_value(report, total_bit_offset, size, 'vendor' not in usage_page_name.lower())
+			value, total_bit_offset = get_value(report, total_bit_offset, size, report_item["logical min"] < 0)
 			values.append(value)
 
 		if const:

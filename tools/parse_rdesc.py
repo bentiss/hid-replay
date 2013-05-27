@@ -48,7 +48,7 @@ def dump_rdesc(r, hid, item, raw_value, value, up, offset, indent):
 		if usage in inv_usages.keys():
 			print "                ", inv_usages[usage]
 
-def dump_rdesc_array(r, hid, item, raw_value, value, up, offset, indent):
+def dump_rdesc_array(r, hid, item, raw_value, value, up, offset, indent, rsize):
 	"""
 	Format the hid item in a C-style format.
 	"""
@@ -66,14 +66,18 @@ def dump_rdesc_array(r, hid, item, raw_value, value, up, offset, indent):
 	if item in ("Report ID",
 		    "Usage Minimum",
 		    "Usage Maximum",
-		    "Logical Minimum",
 		    "Logical Maximum",
-		    "Physical Minimum",
 		    "Physical Maximum",
 		    "Report Size",
 		    "Report Count",
 		    "Unit Exponent"):
 		descr +=  " (" + str(value) + ')'
+	if item in ("Logical Minimum",
+		    "Physical Minimum"):
+		if rsize:
+			descr +=  " (" + str(value) + ') or (' + str(twos_comp(value, rsize * 8)) + ')'
+		else:
+			descr +=  " (" + str(value) + ')'
 	elif item == "Collection":
 		descr +=  " (" + inv_collections[value].capitalize() + ')'
 		indent += 1
@@ -166,7 +170,9 @@ def parse_rdesc(rdesc_str, show = False):
 	usage_min = 0
 	usage_max = 0
 	logical_min = 0
+	logical_min_rsize = 0
 	logical_max = 0
+	logical_max_rsize = 0
 	count = 0
 	size = 0
 	report = []
@@ -191,18 +197,13 @@ def parse_rdesc(rdesc_str, show = False):
 			raw_value.append(rdesc[index + i])
 			value |= rdesc[index + i] << (i-1)*8;
 
-		if rsize > 0 and item in ("Logical Minimum",
-					  "Logical Maximum",
-					  "Physical Minimum",
-					  "Physical Maximum"):
-			value = twos_comp(value, rsize * 8)
 
 		if item == "Unit Exponent":
 			if value > 7:
 				value -= 16
 
 		if show:
-			indent = dump_rdesc_array(r, hid, item, raw_value, value, usage_page, index - 1, indent)
+			indent = dump_rdesc_array(r, hid, item, raw_value, value, usage_page, index - 1, indent, rsize)
 
 		index += 1 + rsize
 
@@ -232,8 +233,10 @@ def parse_rdesc(rdesc_str, show = False):
 			usage_max = value | usage_page
 		elif item == "Logical Minimum":
 			logical_min = value
+			logical_min_rsize = rsize
 		elif item == "Logical Maximum":
 			logical_max = value
+			logical_max_rsize = rsize
 		elif item == "Usage":
 			usage.append(value | usage_page)
 			if value | usage_page == 0xd0051:
@@ -243,6 +246,11 @@ def parse_rdesc(rdesc_str, show = False):
 		elif item == "Report Size":
 			size = value
 		elif item == "Input": # or item == "Output":
+			if logical_min > logical_max:
+				if logical_min_rsize:
+					logical_min = twos_comp(logical_min, logical_min_rsize * 8)
+				if logical_max_rsize:
+					logical_max = twos_comp(logical_max, logical_max_rsize * 8)
 			item = {"type": value, "usage page": usage_page, "logical min": logical_min, "logical max": logical_max, "size": size, "count": count}
 			if value & (0x1 << 0): # Const item
 				item["size"] = size * count
