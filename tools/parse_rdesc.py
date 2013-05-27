@@ -30,10 +30,54 @@ def twos_comp(val, bits):
 		val = val - (1 << bits)
 	return val
 
-def dump_rdesc(r, hid, item, raw_value, value, up, offset, indent):
+class raw_item(object):
+	def __init__(self, report, index):
+		self.report = report
+		self.index = index
+		self.__parse()
+
+	def __parse(self):
+		self.r = r = self.report[self.index]
+		self.raw_value = raw_value = []
+		self.hid = r & 0xfc
+		try:
+			item = inv_hid[self.hid]
+		except:
+			error = "error while parsing " + str(self.index) + " at " + str(["%02x"%(i) for i in self.report[max(0, index - 5):index + 6]])
+			raise KeyError, error
+		self.rsize = r & 0x3
+		if self.rsize == 3:
+			self.rsize = 4
+		self.value = 0
+		for i in xrange(self.rsize, 0, -1):
+			raw_value.append(self.report[self.index + i])
+			self.value |= self.report[self.index + i] << (i-1)*8;
+
+		if item == "Unit Exponent":
+			if self.value > 7:
+				self.value -= 16
+
+	def next(self):
+		return self.index + 1 + self.rsize
+
+	def item(self):
+		return inv_hid[self.hid]
+
+	def twos_comp(self):
+		if self.rsize:
+			self.value = twos_comp(self.value, self.rsize * 8)
+		return self.value
+
+
+
+def dump_rdesc(rdesc_item, indent):
 	"""
 	Format the hid item in a lsusb -v format.
 	"""
+	raw_value = rdesc_item.raw_value
+	item = rdesc_item.item()
+	up = rdesc_item.usage_page
+	value = rdesc_item.value
 	data = "none"
 	rvalues = [ v for v in raw_value ]
 	rvalues.reverse()
@@ -48,10 +92,18 @@ def dump_rdesc(r, hid, item, raw_value, value, up, offset, indent):
 		if usage in inv_usages.keys():
 			print "                ", inv_usages[usage]
 
-def dump_rdesc_array(r, hid, item, raw_value, value, up, offset, indent, rsize):
+def dump_rdesc_array(rdesc_item, indent):
 	"""
 	Format the hid item in a C-style format.
 	"""
+	r = rdesc_item.r
+	hid = rdesc_item.hid
+	item = rdesc_item.item()
+	raw_value = rdesc_item.raw_value
+	value = rdesc_item.value
+	up = rdesc_item.usage_page
+	offset = rdesc_item.index
+	rsize = rdesc_item.rsize
 	line = "0x{:02x}, ".format(r & 0xff)
 	rvalues = [ v for v in raw_value ]
 	rvalues.reverse()
@@ -66,18 +118,14 @@ def dump_rdesc_array(r, hid, item, raw_value, value, up, offset, indent, rsize):
 	if item in ("Report ID",
 		    "Usage Minimum",
 		    "Usage Maximum",
+		    "Logical Minimum",
+		    "Physical Minimum",
 		    "Logical Maximum",
 		    "Physical Maximum",
 		    "Report Size",
 		    "Report Count",
 		    "Unit Exponent"):
 		descr +=  " (" + str(value) + ')'
-	if item in ("Logical Minimum",
-		    "Physical Minimum"):
-		if rsize:
-			descr +=  " (" + str(value) + ') or (' + str(twos_comp(value, rsize * 8)) + ')'
-		else:
-			descr +=  " (" + str(value) + ')'
 	elif item == "Collection":
 		descr +=  " (" + inv_collections[value].capitalize() + ')'
 		indent += 1
@@ -170,42 +218,26 @@ def parse_rdesc(rdesc_str, show = False):
 	usage_min = 0
 	usage_max = 0
 	logical_min = 0
-	logical_min_rsize = 0
+	logical_min_item = None
 	logical_max = 0
-	logical_max_rsize = 0
+	logical_max_item = None
 	count = 0
 	size = 0
 	report = []
 	report_ID = -1
 	win8 = False
-	indent = 0
+	rdesc_items = []
 
 	while index < len(rdesc):
-		r = rdesc[index]
-		raw_value = []
-		hid = r & 0xfc
-		try:
-			item = inv_hid[hid]
-		except:
-			error = "error while parsing " + str(index) + " at " + str(rdesc_str.split(" ")[max(0, index - 5):index + 6])
-			raise KeyError, error
-		rsize = r & 0x3
-		if rsize == 3:
-			rsize = 4
-		value = 0
-		for i in xrange(rsize, 0, -1):
-			raw_value.append(rdesc[index + i])
-			value |= rdesc[index + i] << (i-1)*8;
+		rdesc_item = raw_item(rdesc, index)
+		rdesc_items.append(rdesc_item)
 
+		# store current usage_page in rdesc_item
+		rdesc_item.usage_page = usage_page
 
-		if item == "Unit Exponent":
-			if value > 7:
-				value -= 16
-
-		if show:
-			indent = dump_rdesc_array(r, hid, item, raw_value, value, usage_page, index - 1, indent, rsize)
-
-		index += 1 + rsize
+		index = rdesc_item.next()
+		item = rdesc_item.item()
+		value = rdesc_item.value
 
 		if item == "Report ID":
 			if report_ID:
@@ -233,10 +265,10 @@ def parse_rdesc(rdesc_str, show = False):
 			usage_max = value | usage_page
 		elif item == "Logical Minimum":
 			logical_min = value
-			logical_min_rsize = rsize
+			logical_min_item = rdesc_item
 		elif item == "Logical Maximum":
 			logical_max = value
-			logical_max_rsize = rsize
+			logical_max_item = rdesc_item
 		elif item == "Usage":
 			usage.append(value | usage_page)
 			if value | usage_page == 0xd0051:
@@ -247,10 +279,8 @@ def parse_rdesc(rdesc_str, show = False):
 			size = value
 		elif item == "Input": # or item == "Output":
 			if logical_min > logical_max:
-				if logical_min_rsize:
-					logical_min = twos_comp(logical_min, logical_min_rsize * 8)
-				if logical_max_rsize:
-					logical_max = twos_comp(logical_max, logical_max_rsize * 8)
+				logical_min = logical_min_item.twos_comp()
+				logical_max = logical_max_item.twos_comp()
 			item = {"type": value, "usage page": usage_page, "logical min": logical_min, "logical max": logical_max, "size": size, "count": count}
 			if value & (0x1 << 0): # Const item
 				item["size"] = size * count
@@ -291,6 +321,11 @@ def parse_rdesc(rdesc_str, show = False):
 	if report_ID:
 		reports[report_ID] = report
 		report = []
+
+	if show:
+		indent = 0
+		for rdesc_item in rdesc_items:
+			indent = dump_rdesc_array(rdesc_item, indent)
 
 	return reports, mt_report_id, win8
 
