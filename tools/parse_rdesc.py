@@ -43,7 +43,7 @@ class raw_item(object):
 		try:
 			item = inv_hid[self.hid]
 		except:
-			error = "error while parsing " + str(self.index) + " at " + str(["%02x"%(i) for i in self.report[max(0, index - 5):index + 6]])
+			error = "error while parsing " + str(self.index) + " at " + str(["%02x"%(i) for i in self.report[max(0, self.index - 5):self.index]] + ["_%02x_"%(self.report[self.index])] + ["%02x"%(i) for i in self.report[self.index + 1:self.index + 6]])
 			raise KeyError, error
 		self.rsize = r & 0x3
 		if self.rsize == 3:
