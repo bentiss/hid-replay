@@ -30,6 +30,8 @@ def twos_comp(val, bits):
 		val = val - (1 << bits)
 	return val
 
+class ParseError(Exception): pass
+
 class raw_item(object):
 	def __init__(self, report, index):
 		self.report = report
@@ -44,7 +46,10 @@ class raw_item(object):
 			item = inv_hid[self.hid]
 		except:
 			error = "error while parsing " + str(self.index) + " at " + str(["%02x"%(i) for i in self.report[max(0, self.index - 5):self.index]] + ["_%02x_"%(self.report[self.index])] + ["%02x"%(i) for i in self.report[self.index + 1:self.index + 6]])
-			raise KeyError, error
+			if self.hid == 0:
+				raise ParseError, error
+			else:
+				raise KeyError, error
 		self.rsize = r & 0x3
 		if self.rsize == 3:
 			self.rsize = 4
@@ -229,7 +234,13 @@ def parse_rdesc(rdesc_str, show = False):
 	rdesc_items = []
 
 	while index < len(rdesc):
-		rdesc_item = raw_item(rdesc, index)
+		try:
+			rdesc_item = raw_item(rdesc, index)
+		except ParseError, error:
+			print error
+			print "continuing..."
+			index += 1
+			continue
 		rdesc_items.append(rdesc_item)
 
 		# store current usage_page in rdesc_item
