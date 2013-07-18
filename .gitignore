@@ -60,6 +60,7 @@ core
 *.so
 *.pcf.gz
 *.pdb
+*.pyc
 *.tar.bz2
 *.tar.gz
 
