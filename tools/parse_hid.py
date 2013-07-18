@@ -133,6 +133,12 @@ def parse_hid(f_in, f_out):
 		elif line == '':
 			# End of file
 			break
+		elif line.startswith("N:") or \
+		   line.startswith("P:") or \
+		   line.startswith("I:"):
+			continue
+		else:
+			f_out.write(line)
 
 def main():
 	f = sys.stdin
