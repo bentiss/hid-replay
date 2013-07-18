@@ -75,7 +75,7 @@ class raw_item(object):
 
 
 
-def dump_rdesc(rdesc_item, indent):
+def dump_rdesc(rdesc_item, indent, dump_file):
 	"""
 	Format the hid item in a lsusb -v format.
 	"""
@@ -91,13 +91,13 @@ def dump_rdesc(rdesc_item, indent):
 		for v in rvalues:
 			data += " 0x{:02x}".format(v & 0xff)
 		data += " ] {}".format(value)
-	print "            Item({0:6s}): {1}, data={2}".format(hid_type[item], item, data)
+	dump_file.write("            Item({0:6s}): {1}, data={2}\n".format(hid_type[item], item, data))
 	if item == "Usage":
 		usage = up | value
 		if usage in inv_usages.keys():
-			print "                ", inv_usages[usage]
+			dump_file.write("                 " + inv_usages[usage] + "\n")
 
-def dump_rdesc_array(rdesc_item, indent):
+def dump_rdesc_array(rdesc_item, indent, dump_file):
 	"""
 	Format the hid item in a C-style format.
 	"""
@@ -107,7 +107,7 @@ def dump_rdesc_array(rdesc_item, indent):
 	raw_value = rdesc_item.raw_value
 	value = rdesc_item.value
 	up = rdesc_item.usage_page
-	offset = rdesc_item.index
+	offset = rdesc_item.index - 1
 	rsize = rdesc_item.rsize
 	line = "0x{:02x}, ".format(r & 0xff)
 	rvalues = [ v for v in raw_value ]
@@ -201,10 +201,10 @@ def dump_rdesc_array(rdesc_item, indent):
 	elif item == "Pop":
 		pass
 	descr += " " * (35 - len(descr))
-	print line, "//", descr, offset
+	dump_file.write(line + " // " + descr + " " + str(offset) + "\n")
 	return indent
 
-def parse_rdesc(rdesc_str, show = False):
+def parse_rdesc(rdesc_str, dump_file = None):
 	"""
 	Parse the given report descriptor and outputs it to stdout if show is True.
 	Returns:
@@ -333,10 +333,10 @@ def parse_rdesc(rdesc_str, show = False):
 		reports[report_ID] = report
 		report = []
 
-	if show:
+	if dump_file:
 		indent = 0
 		for rdesc_item in rdesc_items:
-			indent = dump_rdesc_array(rdesc_item, indent)
+			indent = dump_rdesc_array(rdesc_item, indent, dump_file)
 
 	return reports, mt_report_id, win8
 
@@ -344,7 +344,7 @@ def main():
 	f = open(sys.argv[1])
 	for line in f.readlines():
 		if line.startswith("R:"):
-			parse_rdesc(line.lstrip("R: "), True)
+			parse_rdesc(line.lstrip("R: "), sys.stdout)
 			break
 	f.close()
 

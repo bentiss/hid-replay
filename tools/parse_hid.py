@@ -51,7 +51,7 @@ def get_value(report, start, size, twos_comp):
 		value = parse_rdesc.twos_comp(value, size)
 	return value, end_bit
 
-def dump_report(time, report, rdesc, mt):
+def dump_report(time, report, rdesc, mt, f_out):
 	"""
 	Translate the given report to a human readable format.
 	Currently only multitouch reports are processed.
@@ -59,13 +59,13 @@ def dump_report(time, report, rdesc, mt):
 	data = []
 	total_bit_offset = 0
 
-	print "{:>10s}".format(time),
+	f_out.write("{:>10s} ".format(time))
 	sep = ''
 	report_descriptor = None
 	if len(rdesc.keys()) == 1:
 		report_descriptor = rdesc[-1]
 	else:
-		print "ReportID:", report[0],
+		f_out.write("ReportID: %d " % report[0])
 		sep = '/'
 		report_descriptor = rdesc[report[0]]
 		total_bit_offset = 8 # first byte is report ID, actual data starts at 8
@@ -86,7 +86,7 @@ def dump_report(time, report, rdesc, mt):
 			values.append(value)
 
 		if const:
-			print sep, '#',
+			f_out.write("%s # " % sep)
 		elif not array:
 			value_format = "{:d}"
 			if size > 1:
@@ -95,7 +95,7 @@ def dump_report(time, report, rdesc, mt):
 			if prev and prev["type"] == report_item["type"] and prev["usage"] == report_item["usage"]:
 				sep = ","
 				usage = ""
-			print sep + usage, value_format.format(values[0]),
+			f_out.write(sep + usage + " " + value_format.format(values[0]) + " ")
 		else:
 			if not usage_page_name:
 				usage_page_name = "Array"
@@ -105,37 +105,40 @@ def dump_report(time, report, rdesc, mt):
 					usages.append('')
 				else:
 					usage = "{:02x}".format(v)
-					if 'vendor' not in usage_page_name.lower():
+					if 'vendor' not in usage_page_name.lower() and v > 0 and v < len(report_item["usages"]):
 						usage = get_usage(report_item["usages"][v])
 						if "no event indicated" in usage.lower():
 							usage = ''
 					usages.append(usage)
-			print sep, usage_page_name, "[" + ", ".join(usages) + "]",
+			f_out.write(sep + usage_page_name + " [" + ", ".join(usages) + "] ")
 		sep = '|'
 		prev = report_item
-	print ""
+	f_out.write("\n")
+
+def parse_hid(f_in, f_out):
+	r = None
+	while True:
+		try:
+			line = f_in.readline()
+		except KeyboardInterrupt:
+			break
+		if line.startswith("R:"):
+			rdesc, mt, win8 = parse_rdesc.parse_rdesc(line.lstrip("R: "), f_out)
+			if win8:
+				f_out.write("**** win 8 certified ****\n")
+		elif line.startswith("E:"):
+			e, time, size, report = line.split(' ', 3)
+			report = [ int(item, 16) for item in report.split(' ')]
+			dump_report(time, report, rdesc, mt, f_out)
+		elif line == '':
+			# End of file
+			break
 
 def main():
 	f = sys.stdin
 	if len(sys.argv) > 1:
 		f = open(sys.argv[1])
-	r = None
-	while True:
-		try:
-			line = f.readline()
-		except KeyboardInterrupt:
-			break
-		if line.startswith("R:"):
-			rdesc, mt, win8 = parse_rdesc.parse_rdesc(line.lstrip("R: "), True)
-			if win8:
-				print "**** win 8 certified ****"
-		elif line.startswith("E:"):
-			e, time, size, report = line.split(' ', 3)
-			report = [ int(item, 16) for item in report.split(' ')]
-			dump_report(time, report, rdesc, mt)
-		elif line == '':
-			# End of file
-			break
+	parse_hid(f, sys.stdout)
 	f.close()
 
 if __name__ == "__main__":
