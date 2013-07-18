@@ -49,6 +49,13 @@ extern char *program_invocation_short_name;
 #define UHID_NODE	"/dev/uhid"
 __u8 rdesc_buf[4096];
 
+#define HID_REPLAY_MASK_NAME		1 << 0
+#define HID_REPLAY_MASK_RDESC		1 << 1
+#define HID_REPLAY_MASK_INFO		1 << 2
+#define HID_REPLAY_MASK_COMPLETE	(HID_REPLAY_MASK_NAME | \
+					 HID_REPLAY_MASK_RDESC | \
+					 HID_REPLAY_MASK_INFO)
+
 /**
  * Print usage information.
  */
@@ -209,6 +216,7 @@ int main(int argc, char **argv)
 	char *hid_file;
 	enum hid_replay_mode mode = MODE_INTERACTIVE;
 	int sleep_time = 0;
+	unsigned int mask = 0;
 
 	memset(&event, 0, sizeof(event));
 	memset(&dev, 0, sizeof(dev));
@@ -257,21 +265,25 @@ int main(int argc, char **argv)
 				break;
 			case 'R':
 				hid_replay_rdesc(buf, size, &dev);
+				mask |= HID_REPLAY_MASK_RDESC;
 				break;
 			case 'N':
 				hid_replay_name(buf, size, &dev);
+				mask |= HID_REPLAY_MASK_NAME;
 				break;
 			case 'P':
 				hid_replay_phys(buf, size, &dev);
 				break;
 			case 'I':
 				hid_replay_info(buf, size, &dev);
+				mask |= HID_REPLAY_MASK_INFO;
 				break;
-			case 'E':
-				event_pos = ftell(fp) - size;
-				hid_replay_create_device(fuhid, &dev);
-				stop = 1;
-				break;
+		}
+
+		if (mask == HID_REPLAY_MASK_COMPLETE) {
+			event_pos = ftell(fp);
+			hid_replay_create_device(fuhid, &dev);
+			stop = 1;
 		}
 
 	} while (size > 0 && !stop);
