@@ -234,20 +234,34 @@ def trace(device):
 		print "E:", "%d.%06d" % (delta.seconds, delta.microseconds), len(rdata), " ".join(data)
 	os.close(file)
 
-def find_device():
+def find_device(path):
 	filename = ""
-	files = glob.glob('/dev/hidraw*')
+	files = glob.glob(path + '*')
+	if len(files) < 1:
+		return None
 	files.sort()
+	sys.stderr.write("These are the available hidraw devices so far:\n")
 	for hidfile in files:
 		file = os.open(hidfile, os.O_RDONLY)
 		name = HIDIOCGRAWNAME(file)
 		os.close(file)
 		sys.stderr.write(hidfile +": "+name+"\n")
 		print hidfile, name
-	sys.stderr.write("Select the device event number [0-%d]: " % (len(files) - 1))
-	l = sys.stdin.readline()
-	print int(l)
-	return "/dev/hidraw"+str(int(l))
+	n = None
+	while n == None:
+		sys.stderr.write("Select the device event number [0-%d]: " % (len(files) - 1))
+		l = sys.stdin.readline()
+		try:
+			n = int(l)
+		except:
+			pass
+	print n
+	return path+str(n)
 
-sys.stderr.write("These are the available hidraw devices so far:\n")
-trace(find_device())
+dev = find_device('/dev/hidraw-compat')
+if not dev:
+	dev = find_device('/dev/hidraw')
+if not dev:
+	sys.stderr.write("Unable to find any hidraw devices\n")
+	sys.exit(1)
+trace(dev)
