@@ -113,8 +113,14 @@ def dump_report(time, report, rdesc, numbered, mt, f_out):
 		prev = report_item
 	f_out.write("\n")
 
+def build_rkey(reportID, length):
+	return "{0}:{1}".format(reportID, length)
+
 def parse_hid(f_in, f_out):
 	r = None
+	rdesc_dict = {}
+	rdesc = None
+	maybe_numbered = False
 	while True:
 		try:
 			line = f_in.readline()
@@ -122,18 +128,36 @@ def parse_hid(f_in, f_out):
 			break
 		if line.startswith("R:"):
 			rdesc, mt, win8 = parse_rdesc.parse_rdesc(line.lstrip("R: "), f_out)
+			for k in rdesc.keys():
+				if len(rdesc[k][0]):
+					if k == -1:
+						maybe_numbered = True
+					key = build_rkey(k, rdesc[k][1])
+					rdesc_dict[key] = rdesc[k][0]
 			if win8:
 				f_out.write("**** win 8 certified ****\n")
 		elif line.startswith("E:"):
 			e, time, size, report = line.split(' ', 3)
 			report = [ int(item, 16) for item in report.split(' ')]
 			numbered = True
-			if len(rdesc.keys()) == 1:
-				report_descriptor = rdesc[-1]
+			key = build_rkey(report[0], size)
+			if not rdesc_dict.has_key(key) and maybe_numbered:
+				# the report is maybe not numbered
 				numbered = False
-			else:
-				report_descriptor = rdesc[report[0][1]]
-			dump_report(time, report, report_descriptor, numbered, mt, f_out)
+				key = build_rkey(-1, size)
+			if not rdesc_dict.has_key(key):
+				# mabe the report is larger than it should
+				key = None
+				current_size = 0
+				for k in rdesc_dict.keys():
+					id, id_size = k.split(":")
+					id = int(id)
+					id_size = int(id_size)
+					if id == report[0] and id_size < size and current_size < size:
+						current_size = id_size
+						key = k
+			if rdesc_dict.has_key(key):
+				dump_report(time, report, rdesc_dict[key], numbered, mt, f_out)
 		elif line == '':
 			# End of file
 			break
