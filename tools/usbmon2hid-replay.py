@@ -199,7 +199,7 @@ def get_rdesc(device, index):
 	length, rdesc = device.rdesc[index]
 	missing_chars = length - len(rdesc)
 	rdesc.extend( ("**",) * missing_chars)
-	return "R: " + str(length) + " ".join(rdesc)
+	return "R: " + str(length) + " " + " ".join(rdesc)
 
 def get_description(device, index):
 	desc = "# " + device.id + ":" + str(index) + " -> "
