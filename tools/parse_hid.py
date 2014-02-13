@@ -51,7 +51,7 @@ def get_value(report, start, size, twos_comp):
 		value = parse_rdesc.twos_comp(value, size)
 	return value, end_bit
 
-def dump_report(time, report, rdesc, mt, f_out):
+def dump_report(time, report, rdesc, numbered, mt, f_out):
 	"""
 	Translate the given report to a human readable format.
 	Currently only multitouch reports are processed.
@@ -62,12 +62,10 @@ def dump_report(time, report, rdesc, mt, f_out):
 	f_out.write("{:>10s} ".format(time))
 	sep = ''
 	report_descriptor = None
-	if len(rdesc.keys()) == 1:
-		report_descriptor = rdesc[-1]
-	else:
+	report_descriptor = rdesc
+	if numbered:
 		f_out.write("ReportID: %d " % report[0])
 		sep = '/'
-		report_descriptor = rdesc[report[0]]
 		total_bit_offset = 8 # first byte is report ID, actual data starts at 8
 	prev = None
 	for report_item in report_descriptor:
@@ -129,7 +127,13 @@ def parse_hid(f_in, f_out):
 		elif line.startswith("E:"):
 			e, time, size, report = line.split(' ', 3)
 			report = [ int(item, 16) for item in report.split(' ')]
-			dump_report(time, report, rdesc, mt, f_out)
+			numbered = True
+			if len(rdesc.keys()) == 1:
+				report_descriptor = rdesc[-1]
+				numbered = False
+			else:
+				report_descriptor = rdesc[report[0]]
+			dump_report(time, report, report_descriptor, numbered, mt, f_out)
 		elif line == '':
 			# End of file
 			break
