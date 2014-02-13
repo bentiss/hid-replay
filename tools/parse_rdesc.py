@@ -232,6 +232,7 @@ def parse_rdesc(rdesc_str, dump_file = None):
 	report_ID = -1
 	win8 = False
 	rdesc_items = []
+	r_size = 0
 
 	while index < len(rdesc):
 		try:
@@ -251,10 +252,11 @@ def parse_rdesc(rdesc_str, dump_file = None):
 		value = rdesc_item.value
 
 		if item == "Report ID":
-			if report_ID:
-				reports[report_ID] = report
-				report = []
+			if report_ID and r_size > 0:
+				reports[report_ID] = report, (r_size >> 3)
+			report = []
 			report_ID = value
+			r_size = 8
 		elif item == "Push":
 			usage_page_list.append(usage_page)
 		elif item == "Pop":
@@ -297,6 +299,7 @@ def parse_rdesc(rdesc_str, dump_file = None):
 				item["size"] = size * count
 				item["count"] = 1
 				report.append(item)
+				r_size += size * count
 			elif value & (0x1 << 1): # Variable item
 				if usage_min and usage_max:
 					usage = usage_min
@@ -305,6 +308,7 @@ def parse_rdesc(rdesc_str, dump_file = None):
 						item["count"] = 1
 						item["usage"] = usage
 						report.append(item)
+						r_size += size
 						if usage < usage_max:
 							usage += 1
 				else:
@@ -318,11 +322,13 @@ def parse_rdesc(rdesc_str, dump_file = None):
 						item["count"] = 1
 						item["usage"] = usage_
 						report.append(item)
+						r_size += size
 			else: # Array item
 				if usage_min and usage_max:
 					usage = range(usage_min, usage_max + 1)
 				item["usages"] = usage
 				report.append(item)
+				r_size += size * count
 			usage = []
 			usage_min = 0
 			usage_max = 0
@@ -330,8 +336,9 @@ def parse_rdesc(rdesc_str, dump_file = None):
 			if usage[-1] == 0xff0000c5:
 				win8 = True
 	if report_ID:
-		reports[report_ID] = report
+		reports[report_ID] = report, (r_size >> 3)
 		report = []
+		r_size = 0
 
 	if dump_file:
 		indent = 0

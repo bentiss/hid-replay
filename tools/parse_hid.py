@@ -132,7 +132,7 @@ def parse_hid(f_in, f_out):
 				report_descriptor = rdesc[-1]
 				numbered = False
 			else:
-				report_descriptor = rdesc[report[0]]
+				report_descriptor = rdesc[report[0][1]]
 			dump_report(time, report, report_descriptor, numbered, mt, f_out)
 		elif line == '':
 			# End of file
