@@ -97,29 +97,26 @@ def dump_rdesc(rdesc_item, indent, dump_file):
 		if usage in inv_usages.keys():
 			dump_file.write("                 " + inv_usages[usage] + "\n")
 
-def dump_rdesc_array(rdesc_item, indent, dump_file):
-	"""
-	Format the hid item in a C-style format.
-	"""
+def get_raw_values(rdesc_item):
 	r = rdesc_item.r
-	hid = rdesc_item.hid
-	item = rdesc_item.item()
 	raw_value = rdesc_item.raw_value
 	value = rdesc_item.value
-	up = rdesc_item.usage_page
-	offset = rdesc_item.index - 1
-	rsize = rdesc_item.rsize
 	line = "0x{:02x}, ".format(r & 0xff)
 	rvalues = [ v for v in raw_value ]
 	rvalues.reverse()
 	for v in rvalues:
 		line += "0x{:02x}, ".format(v & 0xff)
-	line += " " * (30 - len(line))
+	return line
 
+def get_human_descr(rdesc_item, indent):
+	item = rdesc_item.item()
+	value = rdesc_item.value
+	up = rdesc_item.usage_page
+	rsize = rdesc_item.rsize
+	descr = item
 	if item == "End Collection":
 		indent -= 1
 
-	descr = '  ' * indent + item
 	if item in ("Report ID",
 		    "Usage Minimum",
 		    "Usage Maximum",
@@ -200,6 +197,19 @@ def dump_rdesc_array(rdesc_item, indent, dump_file):
 		pass
 	elif item == "Pop":
 		pass
+	return '  ' * indent + descr, indent
+
+def dump_rdesc_array(rdesc_item, indent, dump_file):
+	"""
+	Format the hid item in a C-style format.
+	"""
+	offset = rdesc_item.index - 1
+	item = rdesc_item.item()
+	line = get_raw_values(rdesc_item)
+	line += " " * (30 - len(line))
+
+	descr, indent = get_human_descr(rdesc_item, indent)
+
 	descr += " " * (35 - len(descr))
 	dump_file.write(line + " // " + descr + " " + str(offset) + "\n")
 	return indent
@@ -333,7 +343,7 @@ def parse_rdesc(rdesc_str, dump_file = None):
 			usage_min = 0
 			usage_max = 0
 		elif item == "Feature":
-			if usage[-1] == 0xff0000c5:
+			if len(usage) > 0 and usage[-1] == 0xff0000c5:
 				win8 = True
 	if report_ID:
 		reports[report_ID] = report, (r_size >> 3)
@@ -345,7 +355,7 @@ def parse_rdesc(rdesc_str, dump_file = None):
 		for rdesc_item in rdesc_items:
 			indent = dump_rdesc_array(rdesc_item, indent, dump_file)
 
-	return reports, mt_report_id, win8
+	return reports, win8, rdesc_items
 
 def main():
 	f = open(sys.argv[1])
