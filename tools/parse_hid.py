@@ -51,20 +51,17 @@ def get_value(report, start, size, twos_comp):
 		value = parse_rdesc.twos_comp(value, size)
 	return value, end_bit
 
-def dump_report(time, report, rdesc, numbered, mt, f_out):
+def get_report(time, report, rdesc, numbered):
 	"""
 	Translate the given report to a human readable format.
-	Currently only multitouch reports are processed.
 	"""
-	data = []
 	total_bit_offset = 0
 
-	f_out.write("{:>10s} ".format(time))
+	output = "{:>10s} ".format(time)
 	sep = ''
-	report_descriptor = None
 	report_descriptor = rdesc
 	if numbered:
-		f_out.write("ReportID: %d " % report[0])
+		output += "ReportID: %d " % report[0]
 		sep = '/'
 		total_bit_offset = 8 # first byte is report ID, actual data starts at 8
 	prev = None
@@ -84,7 +81,7 @@ def dump_report(time, report, rdesc, numbered, mt, f_out):
 			values.append(value)
 
 		if const:
-			f_out.write("%s # " % sep)
+			output += "%s # " % sep
 		elif not array:
 			value_format = "{:d}"
 			if size > 1:
@@ -93,7 +90,7 @@ def dump_report(time, report, rdesc, numbered, mt, f_out):
 			if prev and prev["type"] == report_item["type"] and prev["usage"] == report_item["usage"]:
 				sep = ","
 				usage = ""
-			f_out.write(sep + usage + " " + value_format.format(values[0]) + " ")
+			output += sep + usage + " " + value_format.format(values[0]) + " "
 		else:
 			if not usage_page_name:
 				usage_page_name = "Array"
@@ -108,13 +105,46 @@ def dump_report(time, report, rdesc, numbered, mt, f_out):
 						if "no event indicated" in usage.lower():
 							usage = ''
 					usages.append(usage)
-			f_out.write(sep + usage_page_name + " [" + ", ".join(usages) + "] ")
+			output += sep + usage_page_name + " [" + ", ".join(usages) + "] "
 		sep = '|'
 		prev = report_item
-	f_out.write("\n")
+	return output
 
 def build_rkey(reportID, length):
 	return "{0}:{1}".format(reportID, length)
+
+def parse_event(line, rdesc, rdesc_dict, maybe_numbered):
+	e, time, size, report = line.split(' ', 3)
+	report = [ int(item, 16) for item in report.split(' ')]
+	numbered = True
+	key = build_rkey(report[0], size)
+	if not rdesc_dict.has_key(key) and maybe_numbered:
+		# the report is maybe not numbered
+		numbered = False
+		key = build_rkey(-1, size)
+	if not rdesc_dict.has_key(key):
+		# mabe the report is larger than it should
+		key = None
+		current_size = 0
+		for k in rdesc_dict.keys():
+			id, id_size = k.split(":")
+			id = int(id)
+			id_size = int(id_size)
+			if id == report[0] and id_size < size and current_size < size:
+				current_size = id_size
+				key = k
+	if rdesc_dict.has_key(key):
+		return get_report(time, report, rdesc_dict[key], numbered)
+	return None
+
+def dump_report(line, rdesc, rdesc_dict, maybe_numbered, f_out):
+	"""
+	Translate the given report to a human readable format.
+	"""
+	event = parse_event(line, rdesc, rdesc_dict, maybe_numbered)
+	if event:
+		f_out.write(event)
+		f_out.write("\n")
 
 def parse_hid(f_in, f_out):
 	r = None
@@ -137,27 +167,7 @@ def parse_hid(f_in, f_out):
 			if win8:
 				f_out.write("**** win 8 certified ****\n")
 		elif line.startswith("E:"):
-			e, time, size, report = line.split(' ', 3)
-			report = [ int(item, 16) for item in report.split(' ')]
-			numbered = True
-			key = build_rkey(report[0], size)
-			if not rdesc_dict.has_key(key) and maybe_numbered:
-				# the report is maybe not numbered
-				numbered = False
-				key = build_rkey(-1, size)
-			if not rdesc_dict.has_key(key):
-				# mabe the report is larger than it should
-				key = None
-				current_size = 0
-				for k in rdesc_dict.keys():
-					id, id_size = k.split(":")
-					id = int(id)
-					id_size = int(id_size)
-					if id == report[0] and id_size < size and current_size < size:
-						current_size = id_size
-						key = k
-			if rdesc_dict.has_key(key):
-				dump_report(time, report, rdesc_dict[key], numbered, mt, f_out)
+			dump_report(line, rdesc, rdesc_dict, maybe_numbered, f_out)
 		elif line == '':
 			# End of file
 			break
