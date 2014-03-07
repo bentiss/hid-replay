@@ -215,7 +215,7 @@ def parse_rdesc(rdesc_str, dump_file = None):
 	mt_report_id = -1
 	reports = {}
 
-	rdesc = [int(r, 16) for r in rdesc_str.split(' ')]
+	rdesc = [int(r, 16) for r in rdesc_str.split()]
 	index = 1 # 0 is the size
 	usage_page = 0
 	usage_page_list = []
