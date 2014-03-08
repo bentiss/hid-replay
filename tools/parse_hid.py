@@ -157,7 +157,9 @@ def parse_hid(f_in, f_out):
 		except KeyboardInterrupt:
 			break
 		if line.startswith("R:"):
-			rdesc, win8, items = parse_rdesc.parse_rdesc(line.lstrip("R: "), f_out)
+			rdesc_object = parse_rdesc.parse_rdesc(line.lstrip("R: "), f_out)
+			rdesc = rdesc_object.reports
+			win8 = rdesc_object.win8
 			for k in rdesc.keys():
 				if len(rdesc[k][0]):
 					if k == -1:

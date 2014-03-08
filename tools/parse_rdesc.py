@@ -33,19 +33,18 @@ def twos_comp(val, bits):
 class ParseError(Exception): pass
 
 class raw_item(object):
-	def __init__(self, report, index):
-		self.report = report
-		self.index = index
-		self.__parse()
+	def __init__(self, value, index):
+		self.__parse(value)
+		self.index_in_report = index
 
-	def __parse(self):
-		self.r = r = self.report[self.index]
-		self.raw_value = raw_value = []
+	def __parse(self, value):
+		self.r = r = value
+		self.raw_value = []
 		self.hid = r & 0xfc
 		try:
-			item = inv_hid[self.hid]
+			self.item = inv_hid[self.hid]
 		except:
-			error = "error while parsing " + str(self.index) + " at " + str(["%02x"%(i) for i in self.report[max(0, self.index - 5):self.index]] + ["_%02x_"%(self.report[self.index])] + ["%02x"%(i) for i in self.report[self.index + 1:self.index + 6]])
+			error = "error while parsing {0:02x}".format(value)
 			if self.hid == 0:
 				raise ParseError, error
 			else:
@@ -53,27 +52,180 @@ class raw_item(object):
 		self.rsize = r & 0x3
 		if self.rsize == 3:
 			self.rsize = 4
+		self.index = self.rsize
 		self.value = 0
-		for i in xrange(self.rsize, 0, -1):
-			raw_value.append(self.report[self.index + i])
-			self.value |= self.report[self.index + i] << (i-1)*8;
 
-		if item == "Unit Exponent":
-			if self.value > 7:
+	def feed(self, value):
+		"return True if the value was accepted by the item"
+		if self.index <= 0:
+			raise ParseError, "this item is already full"
+		self.raw_value.insert(0, value)
+		self.value |= value << (self.rsize - self.index) * 8;
+		self.index -= 1
+
+		if self.index == 0:
+			if self.item in ("Logical Minimum",
+					 "Physical Minimum",
+#					 "Logical Maximum",
+#					 "Physical Maximum",
+					):
+				self.twos_comp()
+			if self.item == "Unit Exponent" and self.value > 7:
 				self.value -= 16
 
-	def next(self):
-		return self.index + 1 + self.rsize
-
-	def item(self):
-		return inv_hid[self.hid]
+	def completed(self):
+		# if index is null, then we have consumed all the incoming data
+		return self.index == 0
 
 	def twos_comp(self):
 		if self.rsize:
 			self.value = twos_comp(self.value, self.rsize * 8)
 		return self.value
 
+class ReportDescriptor(object):
+	def __init__(self):
+		self.reports = {}
+		self.index =  1 # 0 is the size
+		self.usage_page = 0
+		self.usage_page_list = []
+		self.usage = []
+		self.usage_min = 0
+		self.usage_max = 0
+		self.logical_min = 0
+		self.logical_min_item = None
+		self.logical_max = 0
+		self.logical_max_item = None
+		self.count = 0
+		self.size = 0
+		self.report = []
+		self.report_ID = -1
+		self.win8 = False
+		self.rdesc_items = []
+		self.r_size = 0
+		self.current_item = None
 
+	def consume(self, value, index):
+		""" item is an int8 """
+		if not self.current_item:
+			# initial state
+			self.current_item = raw_item(value, index)
+		else:
+			# try to feed the value to the current item
+			self.current_item.feed(value)
+		if self.current_item.completed():
+			rdesc_item = self.current_item
+			self.rdesc_items.append(rdesc_item)
+
+			self.parse_item(rdesc_item)
+			self.current_item = None
+
+			return rdesc_item
+		return None
+
+	def close_rdesc(self):
+		if self.report_ID:
+			self.reports[self.report_ID] = self.report, (self.r_size >> 3)
+			self.report = []
+			self.r_size = 0
+
+	def parse_item(self, rdesc_item):
+		# store current usage_page in rdesc_item
+		rdesc_item.usage_page = self.usage_page
+		item = rdesc_item.item
+		value = rdesc_item.value
+
+		if item == "Report ID":
+			if self.report_ID and self.r_size > 0:
+				self.reports[self.report_ID] = self.report, (self.r_size >> 3)
+			self.report = []
+			self.report_ID = value
+			self.r_size = 8
+		elif item == "Push":
+			self.usage_page_list.append(self.usage_page)
+		elif item == "Pop":
+			self.usage_page = self.usage_page_list.pop()
+		elif item == "Usage Page":
+			self.usage_page = value << 16
+			# reset the usage list
+			self.usage = []
+			self.usage_min = 0
+			self.usage_max = 0
+		elif item == "Collection":
+			# reset the usage list
+			self.usage = []
+			self.usage_min = 0
+			self.usage_max = 0
+		elif item == "Usage Minimum":
+			self.usage_min = value | self.usage_page
+		elif item == "Usage Maximum":
+			self.usage_max = value | self.usage_page
+		elif item == "Logical Minimum":
+			self.logical_min = value
+			self.logical_min_item = rdesc_item
+		elif item == "Logical Maximum":
+			self.logical_max = value
+			self.logical_max_item = rdesc_item
+		elif item == "Usage":
+			self.usage.append(value | self.usage_page)
+		elif item == "Report Count":
+			self.count = value
+		elif item == "Report Size":
+			self.size = value
+		elif item == "Input": # or item == "Output":
+#			if self.logical_min > self.logical_max:
+#				self.logical_min = self.logical_min_item.twos_comp()
+#				self.logical_max = self.logical_max_item.twos_comp()
+			item = {"type": value,
+				"usage page": self.usage_page,
+				"logical min": self.logical_min,
+				"logical max": self.logical_max,
+				"size": self.size,
+				"count": self.count}
+			if value & (0x1 << 0): # Const item
+				item["size"] = self.size * self.count
+				item["count"] = 1
+				self.report.append(item)
+				self.r_size += self.size * self.count
+			elif value & (0x1 << 1): # Variable item
+				if self.usage_min and self.usage_max:
+					usage = self.usage_min
+					for i in xrange(self.count):
+						item = item.copy()
+						item["count"] = 1
+						item["usage"] = usage
+						self.report.append(item)
+						self.r_size += self.size
+						if usage < self.usage_max:
+							usage += 1
+				else:
+					for i in xrange(self.count):
+						usage_ = 0
+						if i < len(self.usage):
+							usage_ = self.usage[i]
+						else:
+							usage_ = self.usage[-1]
+						item = item.copy()
+						item["count"] = 1
+						item["usage"] = usage_
+						self.report.append(item)
+						self.r_size += self.size
+			else: # Array item
+				if self.usage_min and self.usage_max:
+					self.usage = range(self.usage_min, self.usage_max + 1)
+				item["usages"] = self.usage
+				self.report.append(item)
+				self.r_size += self.size * self.count
+			self.usage = []
+			self.usage_min = 0
+			self.usage_max = 0
+		elif item == "Feature":
+			if len(self.usage) > 0 and self.usage[-1] == 0xff0000c5:
+				self.win8 = True
+
+	def dump(self, dump_file):
+		indent = 0
+		for rdesc_item in self.rdesc_items:
+			indent = dump_rdesc_array(rdesc_item, indent, dump_file)
 
 def dump_rdesc(rdesc_item, indent, dump_file):
 	"""
@@ -109,14 +261,11 @@ def get_raw_values(rdesc_item):
 	return line
 
 def get_human_descr(rdesc_item, indent):
-	item = rdesc_item.item()
+	item = rdesc_item.item
 	value = rdesc_item.value
 	up = rdesc_item.usage_page
 	rsize = rdesc_item.rsize
 	descr = item
-	if item == "End Collection":
-		indent -= 1
-
 	if item in ("Report ID",
 		    "Usage Minimum",
 		    "Usage Maximum",
@@ -131,6 +280,8 @@ def get_human_descr(rdesc_item, indent):
 	elif item == "Collection":
 		descr +=  " (" + inv_collections[value].capitalize() + ')'
 		indent += 1
+	elif item == "End Collection":
+		indent -= 1
 	elif item == "Usage Page":
 		if inv_usage_pages.has_key(value):
 			descr +=  " (" + inv_usage_pages[value] + ')'
@@ -197,18 +348,22 @@ def get_human_descr(rdesc_item, indent):
 		pass
 	elif item == "Pop":
 		pass
-	return '  ' * indent + descr, indent
+	eff_indent = indent
+	if item == "Collection":
+		eff_indent -= 1
+	return '  ' * eff_indent + descr, indent
 
 def dump_rdesc_array(rdesc_item, indent, dump_file):
 	"""
 	Format the hid item in a C-style format.
 	"""
-	offset = rdesc_item.index - 1
-	item = rdesc_item.item()
+	offset = rdesc_item.index_in_report - 1
+	item = rdesc_item.item
 	line = get_raw_values(rdesc_item)
 	line += " " * (30 - len(line))
 
 	descr, indent = get_human_descr(rdesc_item, indent)
+	eff_indent = indent
 
 	descr += " " * (35 - len(descr))
 	dump_file.write(line + " // " + descr + " " + str(offset) + "\n")
@@ -222,140 +377,23 @@ def parse_rdesc(rdesc_str, dump_file = None):
 	 - the id of the multitouch collection, or -1
 	 - if the multitouch device has been Win 8 certified
 	"""
-	mt_report_id = -1
-	reports = {}
 
 	rdesc = [int(r, 16) for r in rdesc_str.split()]
-	index = 1 # 0 is the size
-	usage_page = 0
-	usage_page_list = []
-	usage = []
-	usage_min = 0
-	usage_max = 0
-	logical_min = 0
-	logical_min_item = None
-	logical_max = 0
-	logical_max_item = None
-	count = 0
-	size = 0
-	report = []
-	report_ID = -1
-	win8 = False
-	rdesc_items = []
-	r_size = 0
+	indent = 0
 
-	while index < len(rdesc):
-		try:
-			rdesc_item = raw_item(rdesc, index)
-		except ParseError, error:
-			print error
-			print "continuing..."
-			index += 1
-			continue
-		rdesc_items.append(rdesc_item)
-
-		# store current usage_page in rdesc_item
-		rdesc_item.usage_page = usage_page
-
-		index = rdesc_item.next()
-		item = rdesc_item.item()
-		value = rdesc_item.value
-
-		if item == "Report ID":
-			if report_ID and r_size > 0:
-				reports[report_ID] = report, (r_size >> 3)
-			report = []
-			report_ID = value
-			r_size = 8
-		elif item == "Push":
-			usage_page_list.append(usage_page)
-		elif item == "Pop":
-			usage_page = usage_page_list.pop()
-		elif item == "Usage Page":
-			usage_page = value << 16
-			# reset the usage list
-			usage = []
-			usage_min = 0
-			usage_max = 0
-		elif item == "Collection":
-			# reset the usage list
-			usage = []
-			usage_min = 0
-			usage_max = 0
-		elif item == "Usage Minimum":
-			usage_min = value | usage_page
-		elif item == "Usage Maximum":
-			usage_max = value | usage_page
-		elif item == "Logical Minimum":
-			logical_min = value
-			logical_min_item = rdesc_item
-		elif item == "Logical Maximum":
-			logical_max = value
-			logical_max_item = rdesc_item
-		elif item == "Usage":
-			usage.append(value | usage_page)
-			if value | usage_page == 0xd0051:
-				mt_report_id = report_ID
-		elif item == "Report Count":
-			count = value
-		elif item == "Report Size":
-			size = value
-		elif item == "Input": # or item == "Output":
-			if logical_min > logical_max:
-				logical_min = logical_min_item.twos_comp()
-				logical_max = logical_max_item.twos_comp()
-			item = {"type": value, "usage page": usage_page, "logical min": logical_min, "logical max": logical_max, "size": size, "count": count}
-			if value & (0x1 << 0): # Const item
-				item["size"] = size * count
-				item["count"] = 1
-				report.append(item)
-				r_size += size * count
-			elif value & (0x1 << 1): # Variable item
-				if usage_min and usage_max:
-					usage = usage_min
-					for i in xrange(count):
-						item = item.copy()
-						item["count"] = 1
-						item["usage"] = usage
-						report.append(item)
-						r_size += size
-						if usage < usage_max:
-							usage += 1
-				else:
-					for i in xrange(count):
-						usage_ = 0
-						if i < len(usage):
-							usage_ = usage[i]
-						else:
-							usage_ = usage[-1]
-						item = item.copy()
-						item["count"] = 1
-						item["usage"] = usage_
-						report.append(item)
-						r_size += size
-			else: # Array item
-				if usage_min and usage_max:
-					usage = range(usage_min, usage_max + 1)
-				item["usages"] = usage
-				report.append(item)
-				r_size += size * count
-			usage = []
-			usage_min = 0
-			usage_max = 0
-		elif item == "Feature":
-			if len(usage) > 0 and usage[-1] == 0xff0000c5:
-				win8 = True
-	if report_ID:
-		reports[report_ID] = report, (r_size >> 3)
-		report = []
-		r_size = 0
-
-	if dump_file:
-		indent = 0
-		for rdesc_item in rdesc_items:
+	rdesc_object = ReportDescriptor()
+	for i in xrange(1,len(rdesc)):
+		v = rdesc[i]
+		if i == len(rdesc) - 1 and v == 0:
+			# some device present a trailing 0, skipping it
+			break
+		rdesc_item = rdesc_object.consume(v, i)
+		if rdesc_item and dump_file:
 			indent = dump_rdesc_array(rdesc_item, indent, dump_file)
 
-	return reports, win8, rdesc_items
+	rdesc_object.close_rdesc()
+
+	return rdesc_object
 
 def main():
 	f = open(sys.argv[1])
