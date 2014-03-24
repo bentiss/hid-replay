@@ -40,6 +40,8 @@ def get_value(report, start, size, twos_comp):
 	start_bit = start
 	end_bit = start_bit + size
 	data = report[start_bit / 8 : end_bit / 8 + 1]
+	if len(data) == 0:
+		return "<.>", end_bit
 	for d in xrange(len(data)):
 		value |= data[d] << (8 * d)
 
@@ -86,6 +88,8 @@ def get_report(time, report, rdesc, numbered):
 			value_format = "{:d}"
 			if size > 1:
 				value_format = "{:" + str(len(str(1<<size)) + 1) + "d}"
+			if isinstance(values[0], str):
+				value_format = "{}"
 			usage = " " + get_usage(report_item["usage"]) + ':'
 			if prev and prev["type"] == report_item["type"] and prev["usage"] == report_item["usage"]:
 				sep = ","
@@ -99,7 +103,11 @@ def get_report(time, report, rdesc, numbered):
 				if v < report_item["logical min"] or v > report_item["logical max"]:
 					usages.append('')
 				else:
-					usage = "{:02x}".format(v)
+					usage = ""
+					if isinstance(values[0], str):
+						usage = v
+					else:
+						usage = "{:02x}".format(v)
 					if 'vendor' not in usage_page_name.lower() and v > 0 and v < len(report_item["usages"]):
 						usage = get_usage(report_item["usages"][v])
 						if "no event indicated" in usage.lower():
