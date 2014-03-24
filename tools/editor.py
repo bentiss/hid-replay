@@ -186,7 +186,8 @@ class Main(QtGui.QMainWindow):
 		self.ui.rawTextEdit.setText(raws)
 
 	def redraw(self):
-		scrollPosition = self.ui.outputTextBrowser.verticalScrollBar().value()
+		scrollVPosition = self.ui.outputTextBrowser.verticalScrollBar().value()
+		scrollHPosition = self.ui.outputTextBrowser.horizontalScrollBar().value()
 		data = ""
 		for e in self.events:
 			if e.startswith("E:"):
@@ -198,7 +199,8 @@ class Main(QtGui.QMainWindow):
 				data += e
 				data += "\n"
 		self.ui.outputTextBrowser.setText(data)
-		self.ui.outputTextBrowser.verticalScrollBar().setValue(scrollPosition)
+		self.ui.outputTextBrowser.verticalScrollBar().setValue(scrollVPosition)
+		self.ui.outputTextBrowser.horizontalScrollBar().setValue(scrollHPosition)
 
 def main():
 	app = QtGui.QApplication(sys.argv)
