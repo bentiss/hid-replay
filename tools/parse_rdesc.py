@@ -356,7 +356,7 @@ def get_human_descr(rdesc_item, indent):
 	eff_indent = indent
 	if item == "Collection":
 		eff_indent -= 1
-	return '  ' * eff_indent + descr, indent
+	return ' ' * eff_indent + descr, indent
 
 def dump_rdesc_kernel(rdesc_item, indent, dump_file):
 	"""
