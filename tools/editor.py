@@ -73,7 +73,7 @@ class Main(QtGui.QMainWindow):
 			lines[-1] = lines[-1][:-4]
 
 		for line in lines:
-			l = line.replace(",", "").replace("0x", "")
+			l = line.replace(",", "").replace("0x", "").replace("-", "")
 
 			rdesc = [int(r, 16) for r in l.split()]
 
@@ -178,7 +178,11 @@ class Main(QtGui.QMainWindow):
 	def redrawRaw(self):
 		raws = ""
 		for item in self.rdesc.rdesc_items:
+			if item.item == "Report ID":
+				raws += "----------------------\n"
 			raws += parse_rdesc.get_raw_values(item) + "\n"
+			if item.item == "Input":
+				raws += "\n"
 		self.ui.rawTextEdit.setText(raws)
 
 	def redraw(self):
