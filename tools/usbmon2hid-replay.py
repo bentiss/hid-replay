@@ -111,8 +111,7 @@ def read_le16(array):
 
 class Ctrl(object):pass
 
-def parse_ctrl_parts(params):
-	ctrl = params[0]
+def parse_ctrl_parts(ctrl):
 	out = Ctrl()
 	out.bmRequestType = read_le8(ctrl[0:])
 	out.bRequest = read_le8(ctrl[1:])
@@ -121,11 +120,10 @@ def parse_ctrl_parts(params):
 	out.wLength = read_le16(ctrl[6:])
 	return out
 
-def parse_desc_string_request(params, data, device):
+def parse_desc_string_request(ctrl, data, device):
 	length, type, content = parse_desc_request(data)
 	if not length:
 		return
-	ctrl = parse_ctrl_parts(params)
 
 	if ctrl.wIndex == 0:
 		device.wLANGID = "".join(content)
@@ -142,11 +140,10 @@ def parse_desc_string_request(params, data, device):
 #	else:
 #		print params, length, type, utf16s_to_utf8s(length, content)
 
-def parse_desc_rdesc_request(params, data, device):
+def parse_desc_rdesc_request(ctrl, data, device):
 	if data == "0":
 		return
 	length, content = prep_incoming_data(data)
-	ctrl = parse_ctrl_parts(params)
 	device.rdesc[ctrl.wIndex] = length, content
 #	device.incomming_data.append((timestamp, length, " ".join(content)))
 	if nomem:
@@ -223,9 +220,12 @@ def usbmon2hid_replay(f_in):
 
 		if URB_type == 'Ci': # synchronous control
 			if event_type == 'C': # answer
-				if current_params and current_params[-1]:
+				if not current_params:
+					continue
+				ctrl, debug = current_params
+				if debug:
 					print "<---", line,
-				current_request(current_params, usbmon_data, hid_devices[dev_address])
+				current_request(ctrl, usbmon_data, hid_devices[dev_address])
 				current_params = None
 			else:
 				for command in HID_COMMANDS.keys():
@@ -233,10 +233,12 @@ def usbmon2hid_replay(f_in):
 						req_name = HID_COMMANDS[command]["name"]
 						current_request = HID_COMMANDS[command]["request_device"]
 						debug = HID_COMMANDS[command].has_key("debug") and HID_COMMANDS[command]["debug"]
-						params = usbmon_data.rstrip(" <")
-						params = params.split()
-						params, length = params[:-1], params[-1]
-						current_params = extract_bytes("".join(params)), length, debug
+
+						# the ctrl prefix is 8 bytes
+						params = usbmon_data.rstrip(" <").replace(" ", "")[:16]
+						params = extract_bytes(params)
+						ctrl = parse_ctrl_parts(params)
+						current_params = ctrl, debug
 						if debug:
 							print "--->", line,
 							print "    ", req_name, dev_address, current_params
