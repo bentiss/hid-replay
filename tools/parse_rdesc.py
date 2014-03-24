@@ -258,7 +258,7 @@ def get_raw_values(rdesc_item):
 	rvalues.reverse()
 	for v in rvalues:
 		line += "0x{:02x}, ".format(v & 0xff)
-	return line
+	return line.strip()
 
 def get_human_descr(rdesc_item, indent):
 	item = rdesc_item.item
