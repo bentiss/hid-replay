@@ -388,10 +388,11 @@ def parse_rdesc(rdesc_str, dump_file = None):
 			# some device present a trailing 0, skipping it
 			break
 		rdesc_item = rdesc_object.consume(v, i)
-		if rdesc_item and dump_file:
-			indent = dump_rdesc_array(rdesc_item, indent, dump_file)
 
 	rdesc_object.close_rdesc()
+
+	if dump_file:
+		rdesc_object.dump(dump_file)
 
 	return rdesc_object
 
