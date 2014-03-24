@@ -103,23 +103,41 @@ def utf16s_to_utf8s(length, string):
 	result += "."*missings
 	return result
 
+def read_le8(array):
+	return int(array[0], 16)
+
+def read_le16(array):
+	return int(array[1], 16) | (int(array[0], 16) << 8)
+
+class Ctrl(object):pass
+
+def parse_ctrl_parts(params):
+	ctrl = params[0]
+	out = Ctrl()
+	out.bmRequestType = read_le8(ctrl[0:])
+	out.bRequest = read_le8(ctrl[1:])
+	out.wValue = read_le16(ctrl[2:])
+	out.wIndex = read_le16(ctrl[4:])
+	out.wLength = read_le16(ctrl[6:])
+	return out
+
 def parse_desc_string_request(params, data, device):
 	length, type, content = parse_desc_request(data)
 	if not length:
 		return
+	ctrl = parse_ctrl_parts(params)
 
-	index = int(params[0][0], 16)
-	if index == 0:
+	if ctrl.wIndex == 0:
 		device.wLANGID = "".join(content)
 		return
 
 	length -= 2 # remove 2 bytes of prefix (length + type)
 
-	if index == device.iManufacturer:
+	if ctrl.wIndex == device.iManufacturer:
 		device.iManufacturer = utf16s_to_utf8s(length, content)
-	elif index == device.iProduct:
+	elif ctrl.wIndex == device.iProduct:
 		device.iProduct = utf16s_to_utf8s(length, content)
-	elif index == device.iSerialNumber:
+	elif ctrl.wIndex == device.iSerialNumber:
 		device.iSerialNumber = utf16s_to_utf8s(length, content)
 #	else:
 #		print params, length, type, utf16s_to_utf8s(length, content)
@@ -128,12 +146,12 @@ def parse_desc_rdesc_request(params, data, device):
 	if data == "0":
 		return
 	length, content = prep_incoming_data(data)
-	index = int(params[0][2], 16)
-	device.rdesc[index] = length, content
+	ctrl = parse_ctrl_parts(params)
+	device.rdesc[ctrl.wIndex] = length, content
 #	device.incomming_data.append((timestamp, length, " ".join(content)))
 	if nomem:
-		print get_description(device, index)
-		print get_rdesc(device, index)
+		print get_description(device, ctrl.wIndex)
+		print get_rdesc(device, ctrl.wIndex)
 		print get_devinfo(device)
 
 def interrupt(timestamp, status, data, device):
@@ -215,7 +233,7 @@ def usbmon2hid_replay(f_in):
 						req_name = HID_COMMANDS[command]["name"]
 						current_request = HID_COMMANDS[command]["request_device"]
 						debug = HID_COMMANDS[command].has_key("debug") and HID_COMMANDS[command]["debug"]
-						params = usbmon_data[len(command):].rstrip(" <")
+						params = usbmon_data.rstrip(" <")
 						params = params.split()
 						params, length = params[:-1], params[-1]
 						current_params = extract_bytes("".join(params)), length, debug
