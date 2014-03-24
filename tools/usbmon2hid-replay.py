@@ -150,11 +150,26 @@ def interrupt(timestamp, status, data, device):
 		print get_event(device, pipe, -1)
 
 HID_COMMANDS = {
-	"80 06 01":("GET DESCRIPTOR Request DEVICE", parse_desc_device_request),
-	"80 06 02":("GET DESCRIPTOR Request CONFIGURATION", null_request),
-	"80 06 03":("GET DESCRIPTOR Request STRING", parse_desc_string_request),
-	"80 06 06":("GET DESCRIPTOR Request DEVICE", null_request),
-	"81 06 22":("GET DESCRIPTOR Request Reports Descriptor", parse_desc_rdesc_request),
+	"80 06 01": {
+		"name": "GET DESCRIPTOR Request DEVICE",
+		"request": parse_desc_device_request,
+	},
+	"80 06 02": {
+		"name": "GET DESCRIPTOR Request CONFIGURATION",
+		"request": null_request,
+	},
+	"80 06 03": {
+		"name": "GET DESCRIPTOR Request STRING",
+		"request": parse_desc_string_request,
+	},
+	"80 06 06": {
+		"name": "GET DESCRIPTOR Request DEVICE",
+		"request": null_request,
+	},
+	"81 06 22": {
+		"name": "GET DESCRIPTOR Request Reports Descriptor",
+		"request": parse_desc_rdesc_request,
+	},
 }
 
 def usbmon2hid_replay(f_in):
@@ -180,7 +195,7 @@ def usbmon2hid_replay(f_in):
 			else:
 				for command in HID_COMMANDS.keys():
 					if usbmon_data.startswith(command):
-						current_request = HID_COMMANDS[command][1]
+						current_request = HID_COMMANDS[command]["request"]
 						params = usbmon_data[len(command):].rstrip(" <")
 						params = params.split()
 						params, length = params[:-1], params[-1]
