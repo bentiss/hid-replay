@@ -30,6 +30,8 @@ def twos_comp(val, bits):
 		val = val - (1 << bits)
 	return val
 
+type_output = "default"
+
 class ParseError(Exception): pass
 
 class raw_item(object):
@@ -225,7 +227,10 @@ class ReportDescriptor(object):
 	def dump(self, dump_file):
 		indent = 0
 		for rdesc_item in self.rdesc_items:
-			indent = dump_rdesc_array(rdesc_item, indent, dump_file)
+			if type_output == "default":
+				indent = dump_rdesc_array(rdesc_item, indent, dump_file)
+			else:
+				indent = dump_rdesc_kernel(rdesc_item, indent, dump_file)
 
 def dump_rdesc(rdesc_item, indent, dump_file):
 	"""
@@ -353,6 +358,23 @@ def get_human_descr(rdesc_item, indent):
 		eff_indent -= 1
 	return '  ' * eff_indent + descr, indent
 
+def dump_rdesc_kernel(rdesc_item, indent, dump_file):
+	"""
+	Format the hid item in a C-style format.
+	"""
+	offset = rdesc_item.index_in_report - 1
+	item = rdesc_item.item
+	line = get_raw_values(rdesc_item)
+	line += "\t" * ((40 - len(line)) / 8)
+
+	descr, indent = get_human_descr(rdesc_item, indent)
+	eff_indent = indent
+
+	descr += "\t" * ((52 - len(descr)) / 8)
+	#dump_file.write(line + "/* " + descr + " " + str(offset) + " */\n")
+	dump_file.write("\t%s/* %s %6d */\n"%(line, descr, offset))
+	return indent
+
 def dump_rdesc_array(rdesc_item, indent, dump_file):
 	"""
 	Format the hid item in a C-style format.
@@ -398,6 +420,9 @@ def parse_rdesc(rdesc_str, dump_file = None):
 
 def main():
 	f = open(sys.argv[1])
+	if len(sys.argv) > 2:
+		global type_output
+		type_output = sys.argv[2]
 	for line in f.readlines():
 		if line.startswith("R:"):
 			parse_rdesc(line.lstrip("R: "), sys.stdout)
