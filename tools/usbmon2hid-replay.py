@@ -151,6 +151,22 @@ def parse_desc_rdesc_request(ctrl, data, device):
 		print get_rdesc(device, ctrl.wIndex)
 		print get_devinfo(device)
 
+def parse_set_report_request(ctrl, data, device):
+	type_dict = {
+		0x01: "Input",
+		0x02: "Output",
+		0x03: "Feature",
+	}
+	if data == "0":
+		return
+	content = extract_bytes(data)
+	reportID = ctrl.wValue & 0xff
+	type = (ctrl.wValue >> 8) & 0xff
+	type = type_dict[type]
+	# we do not store them for later like we do for the others
+	print get_description(device, ctrl.wIndex)
+	print "# SET_REPORT (%s) ID: %02x -> %s (length %d)"% (type, reportID, " ".join(content), ctrl.wLength)
+
 def interrupt(timestamp, status, data, device):
 	if data == "0":
 		return
@@ -167,38 +183,45 @@ def interrupt(timestamp, status, data, device):
 HID_COMMANDS = {
 	"80 06 01": {
 		"name": "GET DESCRIPTOR Request DEVICE",
+		"request_host": null_request,
 		"request_device": parse_desc_device_request,
 		"debug": False,
 	},
 	"80 06 02": {
 		"name": "GET DESCRIPTOR Request CONFIGURATION",
+		"request_host": null_request,
 		"request_device": null_request,
 		"debug": False,
 	},
 	"80 06 03": {
 		"name": "GET DESCRIPTOR Request STRING",
+		"request_host": null_request,
 		"request_device": parse_desc_string_request,
 		"debug": False,
 	},
 	"80 06 06": {
 		"name": "GET DESCRIPTOR Request DEVICE",
+		"request_host": null_request,
 		"request_device": null_request,
 		"debug": False,
 	},
 	"81 06 22": {
 		"name": "GET DESCRIPTOR Request Reports Descriptor",
+		"request_host": null_request,
 		"request_device": parse_desc_rdesc_request,
 		"debug": False,
 	},
 	"a1 01": {
 		"name": "GET REPORT Request",
+		"request_host": null_request,
 		"request_device": null_request,
 		"debug": False,
 	},
 	"21 09": {
 		"name": "SET REPORT Request",
+		"request_host": parse_set_report_request,
 		"request_device": null_request,
-		"debug": True,
+		"debug": False,
 	},
 }
 
@@ -218,7 +241,7 @@ def usbmon2hid_replay(f_in):
 		if not hid_devices.has_key(dev_address):
 			hid_devices[dev_address] = HID_Device(bus, dev_address)
 
-		if URB_type == 'Ci': # synchronous control
+		if URB_type in ('Ci', 'Co'): # synchronous control
 			if event_type == 'C': # answer
 				if not current_params:
 					continue
@@ -232,16 +255,21 @@ def usbmon2hid_replay(f_in):
 					if usbmon_data.startswith(command):
 						req_name = HID_COMMANDS[command]["name"]
 						current_request = HID_COMMANDS[command]["request_device"]
+						host_request = HID_COMMANDS[command]["request_host"]
 						debug = HID_COMMANDS[command].has_key("debug") and HID_COMMANDS[command]["debug"]
 
 						# the ctrl prefix is 8 bytes
 						params = usbmon_data.rstrip(" <").replace(" ", "")[:16]
 						params = extract_bytes(params)
 						ctrl = parse_ctrl_parts(params)
+						data = ""
+						if "=" in usbmon_data:
+							data = usbmon_data.split("=")[1]
 						current_params = ctrl, debug
 						if debug:
 							print "--->", line,
 							print "    ", req_name, dev_address, current_params
+						host_request(ctrl, data, hid_devices[dev_address])
 						break
 				else:
 					current_request = null_request
