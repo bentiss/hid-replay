@@ -180,50 +180,44 @@ def interrupt(timestamp, status, data, device):
 		print get_description(device, pipe)
 		print get_event(device, pipe, -1)
 
-HID_COMMANDS = {
-	"80 06 01": {
-		"name": "GET DESCRIPTOR Request DEVICE",
-		"request_host": null_request,
-		"request_device": parse_desc_device_request,
-		"debug": False,
-	},
-	"80 06 02": {
-		"name": "GET DESCRIPTOR Request CONFIGURATION",
-		"request_host": null_request,
-		"request_device": null_request,
-		"debug": False,
-	},
-	"80 06 03": {
-		"name": "GET DESCRIPTOR Request STRING",
-		"request_host": null_request,
-		"request_device": parse_desc_string_request,
-		"debug": False,
-	},
-	"80 06 06": {
-		"name": "GET DESCRIPTOR Request DEVICE",
-		"request_host": null_request,
-		"request_device": null_request,
-		"debug": False,
-	},
-	"81 06 22": {
-		"name": "GET DESCRIPTOR Request Reports Descriptor",
-		"request_host": null_request,
-		"request_device": parse_desc_rdesc_request,
-		"debug": False,
-	},
-	"a1 01": {
-		"name": "GET REPORT Request",
-		"request_host": null_request,
-		"request_device": null_request,
-		"debug": False,
-	},
-	"21 09": {
-		"name": "SET REPORT Request",
-		"request_host": parse_set_report_request,
-		"request_device": null_request,
-		"debug": False,
-	},
-}
+class HidCommand(object):
+	def __init__(self, prefix, name, request_host, request_device, debug = False):
+		self.prefix = prefix
+		self.name = name
+		self.request_host = request_host
+		self.request_device = request_device
+		self.debug = debug
+
+HID_COMMANDS = (
+	HidCommand("80 06 01",
+		name = "GET DESCRIPTOR Request DEVICE",
+		request_host = null_request,
+		request_device = parse_desc_device_request),
+	HidCommand("80 06 02",
+		name = "GET DESCRIPTOR Request CONFIGURATION",
+		request_host = null_request,
+		request_device = null_request),
+	HidCommand("80 06 03",
+		name = "GET DESCRIPTOR Request STRING",
+		request_host = null_request,
+		request_device = parse_desc_string_request),
+	HidCommand("80 06 06",
+		name = "GET DESCRIPTOR Request DEVICE",
+		request_host = null_request,
+		request_device = null_request),
+	HidCommand("81 06 22",
+		name = "GET DESCRIPTOR Request Reports Descriptor",
+		request_host = null_request,
+		request_device = parse_desc_rdesc_request),
+	HidCommand("a1 01",
+		name = "GET REPORT Request",
+		request_host = null_request,
+		request_device = null_request),
+	HidCommand("21 09",
+		name = "SET REPORT Request",
+		request_host = parse_set_report_request,
+		request_device = null_request),
+)
 
 def usbmon2hid_replay(f_in):
 	hid_devices = {}
@@ -251,12 +245,12 @@ def usbmon2hid_replay(f_in):
 				current_request(ctrl, usbmon_data, hid_devices[dev_address])
 				current_params = None
 			else:
-				for command in HID_COMMANDS.keys():
-					if usbmon_data.startswith(command):
-						req_name = HID_COMMANDS[command]["name"]
-						current_request = HID_COMMANDS[command]["request_device"]
-						host_request = HID_COMMANDS[command]["request_host"]
-						debug = HID_COMMANDS[command].has_key("debug") and HID_COMMANDS[command]["debug"]
+				for command in HID_COMMANDS:
+					if usbmon_data.startswith(command.prefix):
+						req_name = command.name
+						current_request = command.request_device
+						host_request = command.request_host
+						debug = command.debug
 
 						# the ctrl prefix is 8 bytes
 						params = usbmon_data.rstrip(" <").replace(" ", "")[:16]
