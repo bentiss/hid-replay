@@ -170,6 +170,14 @@ HID_COMMANDS = {
 		"name": "GET DESCRIPTOR Request Reports Descriptor",
 		"request": parse_desc_rdesc_request,
 	},
+	"a1 01": {
+		"name": "GET REPORT Request",
+		"request": null_request,
+	},
+	"21 09": {
+		"name": "SET REPORT Request",
+		"request": null_request,
+	},
 }
 
 def usbmon2hid_replay(f_in):
