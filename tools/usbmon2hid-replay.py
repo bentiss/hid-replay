@@ -152,37 +152,37 @@ def interrupt(timestamp, status, data, device):
 HID_COMMANDS = {
 	"80 06 01": {
 		"name": "GET DESCRIPTOR Request DEVICE",
-		"request": parse_desc_device_request,
+		"request_device": parse_desc_device_request,
 		"debug": False,
 	},
 	"80 06 02": {
 		"name": "GET DESCRIPTOR Request CONFIGURATION",
-		"request": null_request,
+		"request_device": null_request,
 		"debug": False,
 	},
 	"80 06 03": {
 		"name": "GET DESCRIPTOR Request STRING",
-		"request": parse_desc_string_request,
+		"request_device": parse_desc_string_request,
 		"debug": False,
 	},
 	"80 06 06": {
 		"name": "GET DESCRIPTOR Request DEVICE",
-		"request": null_request,
+		"request_device": null_request,
 		"debug": False,
 	},
 	"81 06 22": {
 		"name": "GET DESCRIPTOR Request Reports Descriptor",
-		"request": parse_desc_rdesc_request,
+		"request_device": parse_desc_rdesc_request,
 		"debug": False,
 	},
 	"a1 01": {
 		"name": "GET REPORT Request",
-		"request": null_request,
+		"request_device": null_request,
 		"debug": False,
 	},
 	"21 09": {
 		"name": "SET REPORT Request",
-		"request": null_request,
+		"request_device": null_request,
 		"debug": True,
 	},
 }
@@ -213,7 +213,7 @@ def usbmon2hid_replay(f_in):
 				for command in HID_COMMANDS.keys():
 					if usbmon_data.startswith(command):
 						req_name = HID_COMMANDS[command]["name"]
-						current_request = HID_COMMANDS[command]["request"]
+						current_request = HID_COMMANDS[command]["request_device"]
 						debug = HID_COMMANDS[command].has_key("debug") and HID_COMMANDS[command]["debug"]
 						params = usbmon_data[len(command):].rstrip(" <")
 						params = params.split()
