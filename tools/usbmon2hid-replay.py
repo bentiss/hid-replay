@@ -131,11 +131,13 @@ def parse_desc_string_request(ctrl, data, device):
 
 	length -= 2 # remove 2 bytes of prefix (length + type)
 
-	if ctrl.wIndex == device.iManufacturer:
+	index = ctrl.wValue & 0xff
+
+	if index == device.iManufacturer:
 		device.iManufacturer = utf16s_to_utf8s(length, content)
-	elif ctrl.wIndex == device.iProduct:
+	elif index == device.iProduct:
 		device.iProduct = utf16s_to_utf8s(length, content)
-	elif ctrl.wIndex == device.iSerialNumber:
+	elif index == device.iSerialNumber:
 		device.iSerialNumber = utf16s_to_utf8s(length, content)
 #	else:
 #		print params, length, type, utf16s_to_utf8s(length, content)
