@@ -61,7 +61,7 @@ class raw_item(object):
 		"return True if the value was accepted by the item"
 		if self.index <= 0:
 			raise ParseError, "this item is already full"
-		self.raw_value.insert(0, value)
+		self.raw_value.append(value)
 		self.value |= value << (self.rsize - self.index) * 8;
 		self.index -= 1
 
@@ -236,16 +236,13 @@ def dump_rdesc(rdesc_item, indent, dump_file):
 	"""
 	Format the hid item in a lsusb -v format.
 	"""
-	raw_value = rdesc_item.raw_value
 	item = rdesc_item.item()
 	up = rdesc_item.usage_page
 	value = rdesc_item.value
 	data = "none"
-	rvalues = [ v for v in raw_value ]
-	rvalues.reverse()
 	if item != "End Collection":
 		data = " ["
-		for v in rvalues:
+		for v in rdesc_item.raw_value:
 			data += " 0x{:02x}".format(v & 0xff)
 		data += " ] {}".format(value)
 	dump_file.write("            Item({0:6s}): {1}, data={2}\n".format(hid_type[item], item, data))
@@ -256,12 +253,9 @@ def dump_rdesc(rdesc_item, indent, dump_file):
 
 def get_raw_values(rdesc_item):
 	r = rdesc_item.r
-	raw_value = rdesc_item.raw_value
 	value = rdesc_item.value
 	line = "0x{:02x}, ".format(r & 0xff)
-	rvalues = [ v for v in raw_value ]
-	rvalues.reverse()
-	for v in rvalues:
+	for v in rdesc_item.raw_value:
 		line += "0x{:02x}, ".format(v & 0xff)
 	return line.strip()
 
