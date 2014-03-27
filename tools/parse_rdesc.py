@@ -98,7 +98,7 @@ class ReportDescriptor(object):
 		self.logical_max = 0
 		self.logical_max_item = None
 		self.count = 0
-		self.size = 0
+		self.item_size = 0
 		self.report = []
 		self.report_ID = -1
 		self.win8 = False
@@ -172,7 +172,7 @@ class ReportDescriptor(object):
 		elif item == "Report Count":
 			self.count = value
 		elif item == "Report Size":
-			self.size = value
+			self.item_size = value
 		elif item == "Input": # or item == "Output":
 #			if self.logical_min > self.logical_max:
 #				self.logical_min = self.logical_min_item.twos_comp()
@@ -181,13 +181,13 @@ class ReportDescriptor(object):
 				"usage page": self.usage_page,
 				"logical min": self.logical_min,
 				"logical max": self.logical_max,
-				"size": self.size,
+				"size": self.item_size,
 				"count": self.count}
 			if value & (0x1 << 0): # Const item
-				item["size"] = self.size * self.count
+				item["size"] = self.item_size * self.count
 				item["count"] = 1
 				self.report.append(item)
-				self.r_size += self.size * self.count
+				self.r_size += self.item_size * self.count
 			elif value & (0x1 << 1): # Variable item
 				if self.usage_min and self.usage_max:
 					usage = self.usage_min
@@ -196,7 +196,7 @@ class ReportDescriptor(object):
 						item["count"] = 1
 						item["usage"] = usage
 						self.report.append(item)
-						self.r_size += self.size
+						self.r_size += self.item_size
 						if usage < self.usage_max:
 							usage += 1
 				else:
@@ -210,13 +210,13 @@ class ReportDescriptor(object):
 						item["count"] = 1
 						item["usage"] = usage_
 						self.report.append(item)
-						self.r_size += self.size
+						self.r_size += self.item_size
 			else: # Array item
 				if self.usage_min and self.usage_max:
 					self.usage = range(self.usage_min, self.usage_max + 1)
 				item["usages"] = self.usage
 				self.report.append(item)
-				self.r_size += self.size * self.count
+				self.r_size += self.item_size * self.count
 			self.usage = []
 			self.usage_min = 0
 			self.usage_max = 0
