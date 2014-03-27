@@ -272,12 +272,10 @@ def dump_rdesc(rdesc_item, indent, dump_file):
 			dump_file.write("                 " + inv_usages[usage] + "\n")
 
 def get_raw_values(rdesc_item):
-	r = rdesc_item.r
-	value = rdesc_item.value
-	line = "0x{:02x}, ".format(r & 0xff)
-	for v in rdesc_item.raw_value:
-		line += "0x{:02x}, ".format(v & 0xff)
-	return line.strip()
+	data = str(rdesc_item)
+	# prefix each individual value by "0x" and insert "," in between
+	data = "0x" + data.replace(" ", ", 0x") + ","
+	return data
 
 def get_human_descr(rdesc_item, indent):
 	item = rdesc_item.item
