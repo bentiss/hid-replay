@@ -84,6 +84,16 @@ class raw_item(object):
 			self.value = twos_comp(self.value, self.rsize * 8)
 		return self.value
 
+	def size(self):
+		return 1 + len(self.raw_value)
+
+	def __repr__(self):
+		data = ["{0:02x}".format(i) for i in self.raw_value]
+		r = "{0:02x}".format(self.r)
+		if not len(data):
+			return r
+		return r + " " + " ".join(data)
+
 class ReportDescriptor(object):
 	def __init__(self):
 		self.reports = {}
@@ -231,6 +241,16 @@ class ReportDescriptor(object):
 				indent = dump_rdesc_array(rdesc_item, indent, dump_file)
 			else:
 				indent = dump_rdesc_kernel(rdesc_item, indent, dump_file)
+
+	def dump_raw(self, dumpfile):
+		data = [str(i) for i in self.rdesc_items]
+		dumpfile.write(" ".join(data))
+
+	def size(self):
+		size = 0
+		for rdesc_item in self.rdesc_items:
+			size += rdesc_item.size()
+		return size
 
 def dump_rdesc(rdesc_item, indent, dump_file):
 	"""

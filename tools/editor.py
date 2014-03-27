@@ -93,6 +93,7 @@ class Main(QtGui.QMainWindow):
 	def updateRDescFromRaw(self):
 		self.block_events_propagation()
 		rdesc = self.parseRawRdesc()
+		self.statusBar().showMessage("");
 		self.update_rdesc(rdesc)
 		cursor = self.ui.rawTextEdit.textCursor()
 		err_format = QtGui.QTextCharFormat()
@@ -138,7 +139,16 @@ class Main(QtGui.QMainWindow):
 		print fname
 
 	def saveFileAction(self):
-		print "saveFileAction"
+		output = sys.stdout
+		filename = self.filename + ".new"
+		output = open(filename, "w")
+		output.write("R: %d " % self.rdesc.size())
+		self.rdesc.dump_raw(output)
+		output.write("\n")
+		for line in self.file_content:
+			output.write(line + "\n")
+		output.close()
+		self.statusBar().showMessage(filename + " saved");
 
 	def saveAsFileAction(self):
 		print "saveAsFileAction"
@@ -149,18 +159,22 @@ class Main(QtGui.QMainWindow):
 		f = open(filename)
 		rdesc = None
 		events = []
+		file_content = []
 		for line in f.readlines():
 			if line.startswith("R:"):
 				rdesc = parse_rdesc.parse_rdesc(line.lstrip("R: "), None)
 				if not rdesc:
 					raise IOError, filename
 				rdesc = self.update_rdesc(rdesc)
-			if line.startswith("E:") or line.startswith("#"):
-				events.append(line.strip())
+			else:
+				file_content.append(line.strip())
+				if line.startswith("E:") or line.startswith("#"):
+					events.append(line.strip())
 		f.close()
 		# everything went fine, store the new configuration
 		self.filename = filename
 		self.events = events
+		self.file_content = file_content
 		self.redraw()
 		self.redrawRaw()
 
