@@ -78,7 +78,11 @@ class Main(QtGui.QMainWindow):
 			rdesc = [int(r, 16) for r in l.split()]
 
 			for v in rdesc:
-				rdesc_item = rdesc_object.consume(v, 0)
+				try:
+					rdesc_item = rdesc_object.consume(v, 0)
+				except:
+					self.statusBar().showMessage("Error while parsing rdesc, see output");
+					raise
 				if rdesc_item:
 					descr, indent = parse_rdesc.get_human_descr(rdesc_item, indent)
 					human += descr
