@@ -31,6 +31,8 @@ def get_usage(usage):
 		usage = "B" + str(usage & 0xFF)
 	elif hid.inv_usages.has_key(usage):
 		usage = hid.inv_usages[usage]
+	elif (usage_page & 0xFF00) == 0xBE00 and hid.inv_usages.has_key(usage & 0x00FF00FF):
+		usage = hid.inv_usages[usage & 0x00FF00FF] + ' << ' + str((usage >> 8) & 0xFF)
 	else:
 		usage = "0x{:04x}".format(usage)
 	return usage
@@ -76,6 +78,8 @@ def get_report(time, report, rdesc, numbered):
 		usage_page = report_item["usage page"] >> 16
 		if hid.inv_usage_pages.has_key(usage_page):
 			usage_page_name = hid.inv_usage_pages[usage_page]
+		elif (usage_page & 0xFF00) == 0xBE00 and hid.inv_usage_pages.has_key(usage_page & 0x00FF):
+			usage_page_name = hid.inv_usage_pages[usage_page & 0x00FF]
 
 		# get the value and consumes bits
 		for i in xrange(report_item["count"]):
@@ -142,6 +146,12 @@ def parse_event(line, rdesc, rdesc_dict, maybe_numbered):
 				current_size = id_size
 				key = k
 	if rdesc_dict.has_key(key):
+		for item in rdesc_dict[key]:
+			if item.has_key("usage") and item["usage"] == 0x00be0001:
+				value = get_value(report, item["bit_offset"], item["size"], False)[0]
+				subkey = build_rkey(value, size)
+				if rdesc_dict.has_key(subkey):
+					key = subkey
 		return get_report(time, report, rdesc_dict[key], numbered)
 	return None
 

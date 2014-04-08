@@ -192,6 +192,7 @@ class ReportDescriptor(object):
 				"logical min": self.logical_min,
 				"logical max": self.logical_max,
 				"size": self.item_size,
+				"bit_offset": self.r_size,
 				"count": self.count}
 			if value & (0x1 << 0): # Const item
 				item["size"] = self.item_size * self.count
@@ -307,12 +308,16 @@ def get_human_descr(rdesc_item, indent):
 	elif item == "Usage Page":
 		if inv_usage_pages.has_key(value):
 			descr +=  " (" + inv_usage_pages[value] + ')'
+		elif (value & 0xFF00) == 0xBE00 and inv_usage_pages.has_key(value & 0x00FF):
+			descr +=  " (" + inv_usage_pages[value & 0x00FF] + ' + offset)'
 		else:
 			descr +=  " (Vendor Usage Page 0x{:02x})".format(value)
 	elif item == "Usage":
 		usage = value | up
 		if inv_usages.has_key(usage):
 			descr +=  " (" + inv_usages[usage] + ')'
+		elif (usage & 0xFF000000) == 0xBE000000 and inv_usages.has_key(usage & 0x00FF00FF):
+			descr +=  " (" + inv_usages[usage & 0x00FF00FF] + ' << ' + str((usage >> 8) & 0xFF) + ')'
 		else:
 			descr +=  " (Vendor Usage 0x{:02x})".format(value)
 	elif item == "Input" \
