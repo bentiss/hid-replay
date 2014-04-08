@@ -252,6 +252,11 @@ class ReportDescriptor(object):
 			size += rdesc_item.size()
 		return size
 
+	def data(self):
+		string = " ".join([str(i) for i in self.rdesc_items])
+		data = [int(i, 16) for i in string.split()]
+		return data
+
 def dump_rdesc(rdesc_item, indent, dump_file):
 	"""
 	Format the hid item in a lsusb -v format.
