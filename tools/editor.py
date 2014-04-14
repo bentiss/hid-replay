@@ -144,7 +144,7 @@ class Main(QtGui.QMainWindow):
 
 	def saveFileAction(self):
 		output = sys.stdout
-		filename = self.filename + ".new"
+		filename = self.filename
 		output = open(filename, "w")
 		output.write("O: %d " % self.original_rdesc.size())
 		self.original_rdesc.dump_raw(output)
