@@ -146,6 +146,9 @@ class Main(QtGui.QMainWindow):
 		output = sys.stdout
 		filename = self.filename + ".new"
 		output = open(filename, "w")
+		output.write("O: %d " % self.original_rdesc.size())
+		self.original_rdesc.dump_raw(output)
+		output.write("\n")
 		output.write("R: %d " % self.rdesc.size())
 		self.rdesc.dump_raw(output)
 		output.write("\n")
@@ -164,6 +167,7 @@ class Main(QtGui.QMainWindow):
 		rdesc = None
 		events = []
 		file_content = []
+		original_rdesc = None
 		for line in f.readlines():
 			if line.startswith("R:"):
 				rdesc = parse_rdesc.parse_rdesc(line.lstrip("R: "), None)
@@ -174,9 +178,14 @@ class Main(QtGui.QMainWindow):
 				file_content.append(line.strip())
 				if line.startswith("E:") or line.startswith("#"):
 					events.append(line.strip())
+				elif line.startswith("O:"):
+					original_rdesc = parse_rdesc.parse_rdesc(line.lstrip("O: "), None)
 		f.close()
 		# everything went fine, store the new configuration
 		self.filename = filename
+		if not original_rdesc:
+			original_rdesc = self.rdesc
+		self.original_rdesc = original_rdesc
 		self.events = events
 		self.file_content = file_content
 		self.redraw()
