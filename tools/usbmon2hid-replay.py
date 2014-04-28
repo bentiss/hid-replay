@@ -323,6 +323,16 @@ def get_description(device, index):
 			desc += " | " + device.iProduct
 	return desc
 
+def get_name(device):
+	desc = "N:"
+	if isinstance(device.iManufacturer, str):
+		desc += " " + device.iManufacturer
+	if isinstance(device.iProduct, str):
+		desc += " " + device.iProduct
+	if desc == "N:":
+		return ""
+	return desc
+
 def get_devinfo(device):
 	if device.idVendor and device.idProduct:
 		return "I: {0} {1} {2}".format(device.bus, device.idVendor, device.idProduct)
@@ -336,9 +346,12 @@ def get_event(device, index, num):
 	return "E: {0:.06f} {1} {2}".format(ts / 1000000.0, length, data)
 
 def print_hid_replay_dev(device, index):
+	print get_description(device, index)
 	if device.rdesc.has_key(index):
 		print get_rdesc(device, index)
-	print get_description(device, index)
+	name = get_name(device)
+	if name:
+		print name
 	print get_devinfo(device)
 	if device.incomming_data.has_key(index):
 		for num in xrange(len(device.incomming_data[index])):
