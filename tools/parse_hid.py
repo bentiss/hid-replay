@@ -55,7 +55,7 @@ def get_value(report, start, size, twos_comp):
 		value = parse_rdesc.twos_comp(value, size)
 	return value, end_bit
 
-def get_report(time, report, rdesc, numbered):
+def get_report(time, report, rdesc, numbered, key):
 	"""
 	Translate the given report to a human readable format.
 	"""
@@ -65,7 +65,7 @@ def get_report(time, report, rdesc, numbered):
 	sep = ''
 	report_descriptor = rdesc
 	if numbered:
-		output += "ReportID: %d " % report[0]
+		output += "ReportID: {0} [{1:>6}] ".format(report[0], key)
 		sep = '/'
 		total_bit_offset = 8 # first byte is report ID, actual data starts at 8
 	prev = None
@@ -152,7 +152,7 @@ def parse_event(line, rdesc, rdesc_dict, maybe_numbered):
 				subkey = build_rkey(value, size)
 				if rdesc_dict.has_key(subkey):
 					key = subkey
-		return get_report(time, report, rdesc_dict[key], numbered)
+		return get_report(time, report, rdesc_dict[key], numbered, key)
 	return None
 
 def dump_report(line, rdesc, rdesc_dict, maybe_numbered, f_out):
