@@ -38,6 +38,7 @@ class raw_item(object):
 	def __init__(self, value, index):
 		self.__parse(value)
 		self.index_in_report = index
+		self.data = None
 
 	def __parse(self, value):
 		self.r = r = value
@@ -228,6 +229,7 @@ class ReportDescriptor(object):
 				item["usages"] = self.usage
 				self.report.append(item)
 				self.r_size += self.item_size * self.count
+			rdesc_item.data = item
 			self.usage = []
 			self.usage_min = 0
 			self.usage_max = 0
@@ -244,8 +246,7 @@ class ReportDescriptor(object):
 				indent = dump_rdesc_kernel(rdesc_item, indent, dump_file)
 
 	def dump_raw(self, dumpfile):
-		data = [str(i) for i in self.rdesc_items]
-		dumpfile.write(" ".join(data))
+		dumpfile.write(self.data_txt())
 
 	def size(self):
 		size = 0
@@ -254,9 +255,12 @@ class ReportDescriptor(object):
 		return size
 
 	def data(self):
-		string = " ".join([str(i) for i in self.rdesc_items])
+		string = self.data_txt()
 		data = [int(i, 16) for i in string.split()]
 		return data
+
+	def data_txt(self):
+		return " ".join([str(i) for i in self.rdesc_items])
 
 def dump_rdesc(rdesc_item, indent, dump_file):
 	"""
@@ -394,7 +398,7 @@ def dump_rdesc_kernel(rdesc_item, indent, dump_file):
 
 	descr += "\t" * ((52 - len(descr)) / 8)
 	#dump_file.write(line + "/* " + descr + " " + str(offset) + " */\n")
-	dump_file.write("\t%s/* %s %6d */\n"%(line, descr, offset))
+	dump_file.write("\t%s/* %s*/\n"%(line, descr))
 	return indent
 
 def dump_rdesc_array(rdesc_item, indent, dump_file):
