@@ -46,6 +46,7 @@ class HID_Device(object):
 		self.rdesc = {}
 		self.incomming_data = {}
 		self.init_timestamps = {}
+		self.endpointMapping = {}
 
 def extract_bytes(string):
 	data = string.replace(" ", "")
@@ -99,6 +100,28 @@ def parse_desc_device_request(params, data, device):
 	device.bNumConfiguration = int(content[15], 16)
 
 	#print device.bcdUSB, device.bdeviceClass, device.bdeviceSubClass, device.bdeviceProtocol, device.bMaxPacketSize0, "0x{0}:0x{1}".format(device.idVendor, device.idProduct), device.bcdDevice, device.iManufacturer, device.iProduct, device.iSerialNumber, device.bNumConfiguration
+
+def parse_desc_configuration_request(params, data, device):
+	confs = parse_desc_request(data)
+	if not confs[0][0]:
+		return
+
+	if len(confs) == 1:
+		# first configuration contains the generic usb with size of confs
+		return
+
+	current_intf_number = -1
+	hid_class = False
+
+	for length, type, content in confs[1:]:
+		if type == '04': # INTERFACE
+			current_intf_number = int(content[0], 16)
+			intfClass = content[3]
+			hid_class = (intfClass == '03') # HID
+		elif type == '05': # ENDPOINT
+			endpointAddress = int(content[0], 16)
+			if hid_class and endpointAddress & 0x80:
+				device.endpointMapping[endpointAddress & 0x0f] = current_intf_number
 
 def utf16s_to_utf8s(length, string):
 	# TODO: do something much better
@@ -175,12 +198,15 @@ def parse_set_report_request(ctrl, data, device):
 	print get_description(device, ctrl.wIndex)
 	print "# SET_REPORT (%s) ID: %02x -> %s (length %d)"% (type, reportID, " ".join(content), ctrl.wLength)
 
-def interrupt(timestamp, status, data, device):
+def interrupt(timestamp, address, data, device):
 	if data == "0":
 		return
 	length, content = prep_incoming_data(data)
-	_, pipe = status.split(":")
-	pipe = int(pipe)
+	endpoint = address.split(":")[-1]
+	endpoint = int(endpoint)
+	pipe = endpoint
+	if device.endpointMapping.has_key(endpoint):
+		pipe = device.endpointMapping[endpoint]
 	if not device.incomming_data.has_key(pipe):
 		device.incomming_data[pipe] = []
 	device.incomming_data[pipe].append((timestamp, length, " ".join(content)))
@@ -204,7 +230,7 @@ HID_COMMANDS = (
 	HidCommand("80 06 02",
 		name = "GET DESCRIPTOR Request CONFIGURATION",
 		request_host = null_request,
-		request_device = null_request),
+		request_device = parse_desc_configuration_request),
 	HidCommand("80 06 03",
 		name = "GET DESCRIPTOR Request STRING",
 		request_host = null_request,
@@ -277,7 +303,7 @@ def usbmon2hid_replay(f_in):
 					current_request = null_request
 		elif URB_type == 'Ii': # Interrupt
 			if event_type == 'C': # data from device
-				interrupt(timestamp, status, usbmon_data, hid_devices[dev_address])
+				interrupt(timestamp, address, usbmon_data, hid_devices[dev_address])
 
 	return hid_devices
 
