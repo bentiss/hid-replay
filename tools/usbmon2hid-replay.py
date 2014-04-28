@@ -24,6 +24,7 @@
 #
 
 import sys
+from optparse import OptionParser
 nomem = True
 
 class HID_Device(object):
@@ -385,11 +386,16 @@ def print_hid_replay(hid_devices, vendorID = None, productID = None):
 		for i in dev_indexes:
 			print_hid_replay_dev(dev, i)
 
+def get_options():
+	parser = OptionParser()
+	return parser.parse_args()
+
 def main():
 	f = sys.stdin
-	if len(sys.argv) > 1:
+	(options, args) = get_options()
+	if len(args) > 0:
 		global nomem
-		f = open(sys.argv[1])
+		f = open(args[0])
 		nomem = False
 	devs = usbmon2hid_replay(f)
 	if not nomem:
