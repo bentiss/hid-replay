@@ -393,7 +393,7 @@ def dump_rdesc_kernel(rdesc_item, indent, dump_file):
 
 	descr += "\t" * ((52 - len(descr)) / 8)
 	#dump_file.write(line + "/* " + descr + " " + str(offset) + " */\n")
-	dump_file.write("\t%s/* %s %6d */\n"%(line, descr, offset))
+	dump_file.write("\t%s/* %s*/\n"%(line, descr))
 	return indent
 
 def dump_rdesc_array(rdesc_item, indent, dump_file):
