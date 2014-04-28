@@ -199,7 +199,7 @@ def parse_set_report_request(ctrl, data, device):
 	print get_description(device, ctrl.wIndex)
 	print "# SET_REPORT (%s) ID: %02x -> %s (length %d)"% (type, reportID, " ".join(content), ctrl.wLength)
 
-def interrupt(timestamp, address, data, device):
+def interrupt(timestamp, address, data, device, intf):
 	if data == "0":
 		return
 	length, content = prep_incoming_data(data)
@@ -211,7 +211,7 @@ def interrupt(timestamp, address, data, device):
 	if not device.incomming_data.has_key(pipe):
 		device.incomming_data[pipe] = []
 	device.incomming_data[pipe].append((timestamp, length, " ".join(content)))
-	if nomem:
+	if nomem and (intf == None or int(intf) == pipe):
 		print get_description(device, pipe)
 		print get_event(device, pipe, -1)
 
@@ -254,7 +254,7 @@ HID_COMMANDS = (
 		request_device = null_request),
 )
 
-def usbmon2hid_replay(f_in):
+def usbmon2hid_replay(f_in, intf):
 	hid_devices = {}
 	current_request = null_request
 	current_params = None
@@ -304,7 +304,7 @@ def usbmon2hid_replay(f_in):
 					current_request = null_request
 		elif URB_type == 'Ii': # Interrupt
 			if event_type == 'C': # data from device
-				interrupt(timestamp, address, usbmon_data, hid_devices[dev_address])
+				interrupt(timestamp, address, usbmon_data, hid_devices[dev_address], intf)
 
 	return hid_devices
 
@@ -360,7 +360,7 @@ def print_hid_replay_dev(device, index):
 	print ""
 	#print tag, timestamp, event_type, address, status, usbmon_data
 
-def print_hid_replay(hid_devices, vendorID = None, productID = None):
+def print_hid_replay(hid_devices, intf, vendorID = None, productID = None):
 	if vendorID:
 		try:
 			vendorID = vendorID.upper()
@@ -384,10 +384,13 @@ def print_hid_replay(hid_devices, vendorID = None, productID = None):
 				dev_indexes.append(i)
 		dev_indexes.sort()
 		for i in dev_indexes:
-			print_hid_replay_dev(dev, i)
+			if intf == None or int(intf) == i:
+				print_hid_replay_dev(dev, i)
 
 def get_options():
 	parser = OptionParser()
+	parser.add_option("", "--intf", dest="intf",
+			help="capture only the given interface number, omit if you don't want to filter")
 	return parser.parse_args()
 
 def main():
@@ -397,10 +400,10 @@ def main():
 		global nomem
 		f = open(args[0])
 		nomem = False
-	devs = usbmon2hid_replay(f)
+	devs = usbmon2hid_replay(f, options.intf)
 	if not nomem:
-#		print_hid_replay(devs, vendorID = 0x056a)
-		print_hid_replay(devs, vendorID = None)
+#		print_hid_replay(devs, options.intf, vendorID = 0x056a)
+		print_hid_replay(devs, options.intf, vendorID = None)
 	f.close()
 
 if __name__ == "__main__":
