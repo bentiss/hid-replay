@@ -125,6 +125,13 @@ def get_report(time, report, rdesc, numbered, key):
 def build_rkey(reportID, length):
 	return "{0}:{1}".format(reportID, length)
 
+def get_intuos_key(value, key, size):
+	if not (value >> 2):
+		return key
+	if (value >> 3) == 4:
+		return build_rkey(4, size)
+	return build_rkey(value & ~1, size)
+
 def parse_event(line, rdesc, rdesc_dict, maybe_numbered):
 	e, time, size, report = line.split(' ', 3)
 	report = [ int(item, 16) for item in report.split(' ')]
@@ -150,6 +157,11 @@ def parse_event(line, rdesc, rdesc_dict, maybe_numbered):
 			if item.has_key("usage") and item["usage"] == 0x00be0001:
 				value = get_value(report, item["bit_offset"], item["size"], False)[0]
 				subkey = build_rkey(value, size)
+				if rdesc_dict.has_key(subkey):
+					key = subkey
+			elif item.has_key("usage") and item["usage"] == 0x00be0005:
+				value = get_value(report, item["bit_offset"], item["size"], False)[0]
+				subkey = get_intuos_key(value, key, size)
 				if rdesc_dict.has_key(subkey):
 					key = subkey
 		return get_report(time, report, rdesc_dict[key], numbered, key)
