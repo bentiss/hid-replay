@@ -64,18 +64,24 @@ def print_request(params, data, device):
 	print data
 
 def parse_desc_request(data):
-	length, value = data.split(" = ")
-	length = int(length)
-	length_v = int(value[0:2], 16)
-	if length != length_v:
-#		print "MALFORMED USB DESC PACKET"
-		return 0, None, None
-	type = value[2:4]
-	content = extract_bytes(value[4:])
-	return length_v, type, content
+	result = []
+	length = 0
+	total_length, value = data.split(" = ")
+	total_length = int(total_length)
+	content = extract_bytes(value)
+	while length < total_length:
+		length_v = int(content[0], 16)
+		if length_v + length > total_length:
+	#		print "MALFORMED USB DESC PACKET"
+			return [[None, None, None]]
+		type = content[1]
+		result.append( (length_v, type, content[2:length_v]) )
+		content = content[length_v:]
+		length += length_v
+	return result
 
 def parse_desc_device_request(params, data, device):
-	length, type, content = parse_desc_request(data)
+	length, type, content = parse_desc_request(data)[0]
 	if not length:
 		return
 
@@ -121,7 +127,7 @@ def parse_ctrl_parts(ctrl):
 	return out
 
 def parse_desc_string_request(ctrl, data, device):
-	length, type, content = parse_desc_request(data)
+	length, type, content = parse_desc_request(data)[0]
 	if not length:
 		return
 
