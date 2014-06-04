@@ -77,13 +77,13 @@
 4B	Generic Indicator
 4C	System Suspend
 4D	External Power Connected
-4E	Indicator Blue
-4F	Indicator Orange
-50	Good Status
-51	Warning Status
-52	RGBLED
-53	Red LEDChannel
-54	Greed LEDChannel
-55	Blue LEDChannel
-56	LEDIntensity
+4E	Player Indicator
+4F	Player 1
+50	Player 2
+51	Player 3
+52	Player 4
+53	Player 5
+54	Player 6
+55	Player 7
+56	Player 8
 57-FFFF	Reserved
