@@ -53,4 +53,7 @@
 54	Contact Count
 55	Contact Max
 56	Scan Time
-57-FFFF	Reserved
+57-59	Reserved
+5A	Secondary Barrel Switch
+5B	Transducer Serial Number
+5C-FFFF	Reserved

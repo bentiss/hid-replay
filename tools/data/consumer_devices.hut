@@ -115,7 +115,8 @@ CB	Tracking Decrement
 CC	Stop/Eject
 CD	Play/Pause
 CE	Play/Skip
-CF-DF	Reserved
+CF	Voice Command
+D0-DF	Reserved
 E0	Volume
 E1	Balance
 E2	Mute

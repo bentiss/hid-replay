@@ -85,7 +85,7 @@ C2	Coolant Level
 C3	Coolant Critical Level
 C4	Coolant Pump
 C5	Chassis Enclosure
-C6	Wireless Radio Button OOC
-C7	Wireless Radio LEDOOC
+C6	Wireless Radio Button
+C7	Wireless Radio LED
 C8	Wireless Radio Slider Switch
 C9-FFFF	Reserved
