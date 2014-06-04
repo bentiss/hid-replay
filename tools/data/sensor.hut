@@ -215,7 +215,8 @@ E4-0199	Reserved
 0485	Data Field: Magnetic Flux X Axis
 0486	Data Field: Magnetic Flux Y Axis
 0487	Data Field: Magnetic Flux Z Axis
-0488-048F	Data Field: Orientation Reserved
+0488	Data Field: Magnetometer Accuracy
+0489-048F	Data Field: Orientation Reserved
 0490	Data Field: Mechanical
 0491	Data Field: Boolean Switch State
 0492	Data Field: Boolean Switch Array States
@@ -415,6 +416,10 @@ E4-0199	Reserved
 08D2	Kind: Event
 08D3	Kind: Property
 08D4	Kind: Data Field
+
+08E0	Magnetometer Accuracy: Low
+08E1	Magnetometer Accuracy: Medium
+08E2	Magnetometer Accuracy: High
 
 0900	VT_NULL: Empty
 0901	VT_BOOL: Boolean
