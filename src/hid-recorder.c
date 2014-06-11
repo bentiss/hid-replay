@@ -258,9 +258,13 @@ static char* find_hid_dbg(struct hidraw_devinfo *info, struct hidraw_report_desc
 	return filename;
 }
 
-static int fetch_hidraw_information(int fd, struct hidraw_report_descriptor *rpt_desc,
-		struct hidraw_devinfo *info, char *name, char *phys)
+static int fetch_hidraw_information(struct hid_recorder_device *device)
 {
+	int fd = device->fd;
+	struct hidraw_report_descriptor *rpt_desc = &device->rpt_desc;
+	struct hidraw_devinfo *info = &device->info;
+	char *name = device->name;
+	char *phys = device->phys;
 	int i, res, desc_size = 0;
 	memset(rpt_desc, 0x0, sizeof(*rpt_desc));
 	memset(info, 0x0, sizeof(*info));
@@ -419,7 +423,8 @@ static int open_device(const char *filename, struct hid_recorder_device *device)
 	if (fd < 0)
 		return EXIT_FAILURE;
 
-	if (fetch_hidraw_information(fd, &device->rpt_desc, &device->info, device->name, device->phys) != EXIT_SUCCESS) {
+	device->fd = fd;
+	if (fetch_hidraw_information(device) != EXIT_SUCCESS) {
 		ret = EXIT_FAILURE;
 		goto out_err;
 	}
@@ -441,7 +446,6 @@ static int open_device(const char *filename, struct hid_recorder_device *device)
 	}
 
 	device->filename = strdup(filename);
-	device->fd = fd;
 	memset(&device->starttime, 0x0, sizeof(device->starttime));
 
 	if (hid_dbg_event)
