@@ -40,6 +40,7 @@ means it must be run as root.
 devices. The output of *hid-recorder* has the following syntax:
 
 - *#* lines comments
+- *D:* tell which device we are currently working with
 - *R:* size dump_of_report_descriptor_in_hexadecimal
 - *N:* common_name_of_the_device
 - *P:* physical_path

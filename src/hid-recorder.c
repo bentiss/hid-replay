@@ -68,6 +68,7 @@ enum hid_recorder_mode {
 
 struct hid_recorder_device {
 	int fd;
+	int idx;
 	FILE *hid_dbg_file;
 	char *filename;
 	struct hidraw_report_descriptor rpt_desc;
@@ -270,6 +271,8 @@ static int fetch_hidraw_information(struct hid_recorder_device *device)
 	memset(info, 0x0, sizeof(*info));
 	memset(name, 0x0, 256);
 	memset(phys, 0x0, 256);
+
+	printf("D: %d\n", device->idx);
 
 	/* Get Report Descriptor Size */
 	res = ioctl(fd, HIDIOCGRDESCSIZE, &desc_size);

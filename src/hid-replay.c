@@ -34,12 +34,14 @@
 #include <fcntl.h>
 #include <unistd.h>
 #include <getopt.h>
+#include <poll.h>
 
 /* C */
 #include <stdio.h>
 #include <string.h>
 #include <stdlib.h>
 #include <errno.h>
+#include <ccan/list/list.h>
 
 #define _GNU_SOURCE
 #include <errno.h>
@@ -58,6 +60,13 @@ __u8 rdesc_buf[4096];
 
 struct hid_replay_device {
 	int fuhid;
+	int idx;
+	struct list_node list;
+};
+
+struct hid_replay_devices_list {
+	struct list_head devices;
+	struct hid_replay_device *current;
 };
 
 /**
@@ -108,6 +117,15 @@ static void hid_replay_rdesc(char *rdesc, ssize_t len, struct uhid_create_req *d
 	}
 	dev->rd_data = rdesc_buf;
 	dev->rd_size = rdesc_len;
+}
+
+static int hid_replay_switch_dev(char *rdesc, ssize_t len)
+{
+	int i;
+	int n = sscanf(rdesc, "D: %d\n", &i);
+	if (n != 1)
+		return -1;
+	return i;
 }
 
 static void hid_replay_event(int fuhid, char *ubuf, ssize_t len, struct timeval *time)
@@ -198,6 +216,17 @@ static void hid_replay_destroy_device(struct hid_replay_device *device)
 	free(device);
 }
 
+static void hid_replay_destroy_devices(struct hid_replay_devices_list *devices)
+{
+	struct hid_replay_device *device, *next;
+
+	list_for_each_safe(&devices->devices, device, next, list) {
+		list_del(&device->list);
+		hid_replay_destroy_device(device);
+	}
+	free(devices);
+}
+
 static int hid_replay_parse_header(FILE *fp, struct uhid_create_req *dev)
 {
 	unsigned int mask = 0;
@@ -212,6 +241,15 @@ static int hid_replay_parse_header(FILE *fp, struct uhid_create_req *dev)
 		switch (buf[0]) {
 			case '#':
 				/* comments, just skip the line */
+				break;
+			case 'D':
+				if (mask == 0) {
+					if (device_index == 0)
+						device_index = hid_replay_switch_dev(buf, size);
+				} else {
+					fprintf(stderr, "Error while parsing hid-replay file, got a Device switch while the previous device was not fully configured.\n");
+					return -1;
+				}
 				break;
 			case 'R':
 				hid_replay_rdesc(buf, size, dev);
@@ -238,10 +276,13 @@ static int hid_replay_parse_header(FILE *fp, struct uhid_create_req *dev)
 
 	free(buf);
 
+	if (mask != HID_REPLAY_MASK_COMPLETE)
+		return -1;
+
 	return device_index;
 }
 
-static struct hid_replay_device *__hid_replay_create_device(struct uhid_create_req *dev)
+static struct hid_replay_device *__hid_replay_create_device(int idx, struct uhid_create_req *dev)
 {
 	struct uhid_event event;
 	struct hid_replay_device *device;
@@ -252,6 +293,7 @@ static struct hid_replay_device *__hid_replay_create_device(struct uhid_create_r
 		return NULL;
 	}
 
+	device->idx = idx;
 	device->fuhid = open(UHID_NODE, O_RDWR);
 	if (device->fuhid < 0){
 		fprintf(stderr, "Failed to open uHID node: %s\n", strerror(errno));
@@ -271,48 +313,100 @@ static struct hid_replay_device *__hid_replay_create_device(struct uhid_create_r
 	return device;
 }
 
-static struct hid_replay_device *hid_replay_create_devices(FILE *fp)
+
+
+static struct hid_replay_devices_list *hid_replay_create_devices(FILE *fp)
 {
 	struct uhid_create_req dev;
-	struct hid_replay_device *hid_replay_dev;
+	struct hid_replay_devices_list *list = calloc(1, sizeof(struct hid_replay_devices_list));
 	int idx;
 
-	idx = hid_replay_parse_header(fp, &dev);
-	if (idx >= 0) {
-		hid_replay_dev = __hid_replay_create_device(&dev);
-		if (!hid_replay_dev)
-			return NULL;
-	}
+	if (!list)
+		return NULL;
 
-	return hid_replay_dev;
+	list_head_init(&list->devices);
+
+	do {
+		memset(&dev, 0, sizeof(dev));
+		idx = hid_replay_parse_header(fp, &dev);
+		if (idx >= 0) {
+			struct hid_replay_device *new_dev = __hid_replay_create_device(idx, &dev);
+			if (!new_dev)
+				continue;
+
+			list_add(&list->devices, &new_dev->list);
+			list->current = new_dev;
+		}
+	} while (idx >= 0);
+
+	return list;
 }
 
-static int hid_replay_wait_opened(struct hid_replay_device *device)
+static int hid_replay_wait_opened(struct hid_replay_devices_list *devices)
 {
-	int stop = 0;
+	int i, ret;
 	struct uhid_event event;
+	struct pollfd *fds;
+	struct hid_replay_device *device;
+	int count = 0;
 
-	while (!stop) {
-		read(device->fuhid, &event, sizeof(event));
-		stop = event.type == UHID_OPEN;
+	list_for_each(&devices->devices, device, list)
+		++count;
+
+	fds = calloc(count, sizeof(struct pollfd));
+	if (!fds)
+		return -ENOMEM;
+
+	count = 0;
+
+	list_for_each(&devices->devices, device, list) {
+		fds[count].fd = device->fuhid;
+		fds[count].events = POLLIN;
+		++count;
 	}
 
-	return 0;
+	do {
+		ret = poll(fds, count, -1);
+		if (ret >= 0) {
+			for (i=0; i < count; i++) {
+				if (fds[i].revents & POLLIN) {
+					read(fds[i].fd, &event, sizeof(event));
+					if(event.type == UHID_OPEN) {
+						ret = 0;
+						goto out;
+					}
+				}
+			}
+		}
+	} while (ret >= 0);
+
+out:
+	free(fds);
+	return ret;
 }
 
-static int hid_replay_read_one(FILE *fp, struct hid_replay_device *device, struct timeval *time)
+static int hid_replay_read_one(FILE *fp, struct hid_replay_devices_list *devices, struct timeval *time)
 {
 	char *buf = 0;
 	ssize_t size;
 	size_t n;
+	int new_id;
+	struct hid_replay_device *device;
 
 	do {
 		size = getline(&buf, &n, fp);
 		if (size < 1)
 			break;
-		if (buf[0] == 'E') {
-			hid_replay_event(device->fuhid, buf, size, time);
+		switch (buf[0]) {
+		case 'E':
+			hid_replay_event(devices->current->fuhid, buf, size, time);
+			free(buf);
 			return 0;
+		case 'D':
+			new_id = hid_replay_switch_dev(buf, size);
+			list_for_each(&devices->devices, device, list)
+				if (device->idx == new_id)
+					devices->current = device;
 		}
 	} while (1);
 
@@ -347,7 +441,7 @@ int main(int argc, char **argv)
 	int sleep_time = 0;
 	int error;
 
-	struct hid_replay_device *device;
+	struct hid_replay_devices_list *devices;
 
 	memset(&event, 0, sizeof(event));
 	memset(&dev, 0, sizeof(dev));
@@ -386,12 +480,12 @@ int main(int argc, char **argv)
 		return usage();
 	}
 
-	device = hid_replay_create_devices(fp);
+	devices = hid_replay_create_devices(fp);
 
-	if (!device)
+	if (!devices)
 		return EXIT_FAILURE;
 
-	hid_replay_wait_opened(device);
+	hid_replay_wait_opened(devices);
 
 	if (sleep_time)
 		sleep(sleep_time);
@@ -407,11 +501,11 @@ int main(int argc, char **argv)
 		memset(&time, 0, sizeof(time));
 		fseek(fp, 0, SEEK_SET);
 		do {
-			error = hid_replay_read_one(fp, device, &time);
+			error = hid_replay_read_one(fp, devices, &time);
 		} while (!error);
 	}
 
 	fclose(fp);
-	hid_replay_destroy_device(device);
+	hid_replay_destroy_devices(devices);
 	return 0;
 }
