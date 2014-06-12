@@ -83,6 +83,7 @@ struct hid_recorder_device {
 
 struct hid_recorder_state {
 	enum hid_recorder_mode mode;
+	struct hid_recorder_device *device;
 	int event_count;
 };
 
@@ -477,6 +478,8 @@ static void signal_callback_handler(int signum)
 {
 	exit_recording_message();
 
+	destroy_device(state.device);
+
 	/* Terminate program */
 	exit(signum);
 }
@@ -522,6 +525,8 @@ int main(int argc, char **argv)
 		return ret;
 	}
 	free(filename);
+
+	state.device = &device;
 
 	signal(SIGINT, signal_callback_handler);
 
