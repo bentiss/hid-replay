@@ -215,7 +215,6 @@ static char* find_hid_dbg(struct hidraw_devinfo *info, struct hidraw_report_desc
 	{
 		char fname[256];
 		FILE *file;
-		char name[256] = "???";
 		int size;
 
 		snprintf(fname, sizeof(fname),
@@ -247,8 +246,8 @@ static int fetch_hidraw_information(int fd, struct hidraw_report_descriptor *rpt
 		struct hidraw_devinfo *info, char *name, char *phys)
 {
 	int i, res, desc_size = 0;
-	memset(rpt_desc, 0x0, sizeof(rpt_desc));
-	memset(info, 0x0, sizeof(info));
+	memset(rpt_desc, 0x0, sizeof(*rpt_desc));
+	memset(info, 0x0, sizeof(*info));
 	memset(name, 0x0, 256);
 	memset(phys, 0x0, 256);
 
@@ -354,7 +353,6 @@ static int read_hiddbg_event(FILE *file, struct timeval *starttime,
 static int read_hidraw_event(int fd, struct timeval *starttime)
 {
 	char buf[4096];
-	struct timeval currenttime;
 	int i, res;
 
 	/* Get a report from the device */
