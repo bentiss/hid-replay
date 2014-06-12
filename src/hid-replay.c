@@ -158,7 +158,7 @@ static void hid_replay_name(char *buf, ssize_t len, struct uhid_create_req *dev)
 	if (len - 3 >= sizeof(dev->name))
 		return;
 	sscanf(buf, "N: %[^\n]\n", dev->name);
-	len = strlen(dev->name);
+	len = strlen((const char *)dev->name);
 	if (dev->name[len - 1] == '\r')
 		dev->name[len - 1] = '\0';
 }
