@@ -56,6 +56,10 @@ __u8 rdesc_buf[4096];
 					 HID_REPLAY_MASK_RDESC | \
 					 HID_REPLAY_MASK_INFO)
 
+struct hid_replay_device {
+	int fuhid;
+};
+
 /**
  * Print usage information.
  */
@@ -187,44 +191,169 @@ static void hid_replay_info(char *buf, ssize_t len, struct uhid_create_req *dev)
 	dev->product = pid;
 }
 
-static void hid_replay_create_device(int fuhid, struct uhid_create_req *dev)
+static void hid_replay_destroy_device(struct hid_replay_device *device)
+{
+	if (device->fuhid)
+		close(device->fuhid);
+	free(device);
+}
+
+static int hid_replay_parse_header(FILE *fp, struct uhid_create_req *dev)
+{
+	unsigned int mask = 0;
+	char *buf = 0;
+	int stop = 0;
+	ssize_t size;
+	size_t n;
+	int device_index = 0;
+
+	do {
+		size = getline(&buf, &n, fp);
+		switch (buf[0]) {
+			case '#':
+				/* comments, just skip the line */
+				break;
+			case 'R':
+				hid_replay_rdesc(buf, size, dev);
+				mask |= HID_REPLAY_MASK_RDESC;
+				break;
+			case 'N':
+				hid_replay_name(buf, size, dev);
+				mask |= HID_REPLAY_MASK_NAME;
+				break;
+			case 'P':
+				hid_replay_phys(buf, size, dev);
+				break;
+			case 'I':
+				hid_replay_info(buf, size, dev);
+				mask |= HID_REPLAY_MASK_INFO;
+				break;
+		}
+
+		if (mask == HID_REPLAY_MASK_COMPLETE) {
+			stop = 1;
+		}
+
+	} while (size > 0 && !stop);
+
+	free(buf);
+
+	return device_index;
+}
+
+static struct hid_replay_device *__hid_replay_create_device(struct uhid_create_req *dev)
 {
 	struct uhid_event event;
+	struct hid_replay_device *device;
+
+	device = calloc(1, sizeof(struct hid_replay_device));
+	if (device == NULL) {
+		fprintf(stderr, "Failed to allocate uHID device: %s\n", strerror(errno));
+		return NULL;
+	}
+
+	device->fuhid = open(UHID_NODE, O_RDWR);
+	if (device->fuhid < 0){
+		fprintf(stderr, "Failed to open uHID node: %s\n", strerror(errno));
+		free(device);
+		return NULL;
+	}
 
 	memset(&event, 0, sizeof(event));
 	event.type = UHID_CREATE;
 	event.u.create = *dev;
 
-	if (write(fuhid, &event, sizeof(event)) < 0)
+	if (write(device->fuhid, &event, sizeof(event)) < 0) {
 		fprintf(stderr, "Failed to create uHID device: %s\n", strerror(errno));
+		hid_replay_destroy_device(device);
+	}
+
+	return device;
 }
 
+static struct hid_replay_device *hid_replay_create_devices(FILE *fp)
+{
+	struct uhid_create_req dev;
+	struct hid_replay_device *hid_replay_dev;
+	int idx;
+
+	idx = hid_replay_parse_header(fp, &dev);
+	if (idx >= 0) {
+		hid_replay_dev = __hid_replay_create_device(&dev);
+		if (!hid_replay_dev)
+			return NULL;
+	}
+
+	return hid_replay_dev;
+}
+
+static int hid_replay_wait_opened(struct hid_replay_device *device)
+{
+	int stop = 0;
+	struct uhid_event event;
+
+	while (!stop) {
+		read(device->fuhid, &event, sizeof(event));
+		stop = event.type == UHID_OPEN;
+	}
+
+	return 0;
+}
+
+static int hid_replay_read_one(FILE *fp, struct hid_replay_device *device, struct timeval *time)
+{
+	char *buf = 0;
+	ssize_t size;
+	size_t n;
+
+	do {
+		size = getline(&buf, &n, fp);
+		if (size < 1)
+			break;
+		if (buf[0] == 'E') {
+			hid_replay_event(device->fuhid, buf, size, time);
+			return 0;
+		}
+	} while (1);
+
+	free(buf);
+
+	return 1;
+}
+
+static int try_open_uhid()
+{
+	int fuhid = open(UHID_NODE, O_RDWR);
+	if (fuhid < 0){
+		fprintf(stderr, "Failed to open uHID node: %s\n", strerror(errno));
+		return 1;
+	}
+
+	close(fuhid);
+
+	return 0;
+}
 
 int main(int argc, char **argv)
 {
 	FILE *fp;
-	int fuhid = open(UHID_NODE, O_RDWR);
 	struct uhid_event event;
 	struct uhid_create_req dev;
-	char *buf = 0;
-	ssize_t size;
-	size_t n;
-	int stop = 0;
 	struct timeval time;
-	long event_pos;
+	int stop = 0;
 	char line[40];
 	char *hid_file;
 	enum hid_replay_mode mode = MODE_INTERACTIVE;
 	int sleep_time = 0;
-	unsigned int mask = 0;
+	int error;
+
+	struct hid_replay_device *device;
 
 	memset(&event, 0, sizeof(event));
 	memset(&dev, 0, sizeof(dev));
 
-	if (fuhid < 0){
-		fprintf(stderr, "Failed to open uHID node: %s\n", strerror(errno));
+	if (try_open_uhid())
 		return EXIT_FAILURE;
-	}
 
 	while (1) {
 		int option_index = 0;
@@ -257,43 +386,12 @@ int main(int argc, char **argv)
 		return usage();
 	}
 
-	do {
-		size = getline(&buf, &n, fp);
-		switch (buf[0]) {
-			case '#':
-				/* comments, just skip the line */
-				break;
-			case 'R':
-				hid_replay_rdesc(buf, size, &dev);
-				mask |= HID_REPLAY_MASK_RDESC;
-				break;
-			case 'N':
-				hid_replay_name(buf, size, &dev);
-				mask |= HID_REPLAY_MASK_NAME;
-				break;
-			case 'P':
-				hid_replay_phys(buf, size, &dev);
-				break;
-			case 'I':
-				hid_replay_info(buf, size, &dev);
-				mask |= HID_REPLAY_MASK_INFO;
-				break;
-		}
+	device = hid_replay_create_devices(fp);
 
-		if (mask == HID_REPLAY_MASK_COMPLETE) {
-			event_pos = ftell(fp);
-			hid_replay_create_device(fuhid, &dev);
-			stop = 1;
-		}
+	if (!device)
+		return EXIT_FAILURE;
 
-	} while (size > 0 && !stop);
-
-	stop = 0;
-
-	while (!stop) {
-		read(fuhid, &event, sizeof(event));
-		stop = event.type == UHID_OPEN;
-	}
+	hid_replay_wait_opened(device);
 
 	if (sleep_time)
 		sleep(sleep_time);
@@ -307,17 +405,13 @@ int main(int argc, char **argv)
 			stop = 1;
 
 		memset(&time, 0, sizeof(time));
-		fseek(fp, event_pos, SEEK_SET);
+		fseek(fp, 0, SEEK_SET);
 		do {
-			size = getline(&buf, &n, fp);
-			if (buf[0] == 'E') {
-				hid_replay_event(fuhid, buf, size, &time);
-			}
-		} while (size > 0);
+			error = hid_replay_read_one(fp, device, &time);
+		} while (!error);
 	}
 
 	fclose(fp);
-	close(fuhid);
-	free(buf);
+	hid_replay_destroy_device(device);
 	return 0;
 }
