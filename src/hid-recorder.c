@@ -421,7 +421,7 @@ int main(int argc, char **argv)
 	}
 
 	if (optind < argc)
-		device = argv[optind++];
+		device = strdup(argv[optind++]);
 	else {
 		if (getuid() != 0)
 			fprintf(stderr, "Not running as root, some devices "
@@ -436,6 +436,7 @@ int main(int argc, char **argv)
 
 	if (fd < 0) {
 		perror("Unable to open device");
+		free(device);
 		return EXIT_FAILURE;
 	}
 
@@ -482,5 +483,6 @@ out:
 		free(buf_write);
 	}
 	close(fd);
+	free(device);
 	return ret;
 }
