@@ -265,7 +265,7 @@ class USBMon(threading.Thread):
 		self.bufs = {}
 		# launch the actual usbmon tool with a buffer big enough to store
 		# the various hid report descriptors
-		self.p = subprocess.Popen(shlex.split("usbmon -i {0} -fu -s 256".format(bus)), stdout=subprocess.PIPE)
+		self.p = subprocess.Popen(shlex.split("usbmon -i {0} -fu -s 512".format(bus)), stdout=subprocess.PIPE)
 		self.start()
 
 	def pump_events(self, addr):
