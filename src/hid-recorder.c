@@ -85,6 +85,7 @@ struct hid_recorder_device {
 struct hid_recorder_state {
 	enum hid_recorder_mode mode;
 	struct hid_recorder_device *device;
+	struct hid_recorder_device *current;
 	int event_count;
 };
 
@@ -411,13 +412,18 @@ static void exit_recording_message()
 
 static int read_event(struct hid_recorder_device *device)
 {
+	if (state.current != device){
+		printf("D: %d\n", device->idx);
+		state.current = device;
+	}
+
 	if (device->hid_dbg_file)
 		return read_hiddbg_event(device);
 
 	return read_hidraw_event(device);
 }
 
-static int open_device(const char *filename, struct hid_recorder_device *device)
+static int open_device(const char *filename, int idx, struct hid_recorder_device *device)
 {
 	int ret;
 	char *hid_dbg_event = NULL;
@@ -427,6 +433,7 @@ static int open_device(const char *filename, struct hid_recorder_device *device)
 		return EXIT_FAILURE;
 
 	device->fd = fd;
+	device->idx = idx;
 	if (fetch_hidraw_information(device) != EXIT_SUCCESS) {
 		ret = EXIT_FAILURE;
 		goto out_err;
@@ -525,7 +532,7 @@ int main(int argc, char **argv)
 			return usage();
 	}
 
-	ret = open_device(filename, &device);
+	ret = open_device(filename, 0, &device);
 	if (ret) {
 		perror("Unable to open device");
 		free(filename);
