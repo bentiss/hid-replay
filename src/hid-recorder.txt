@@ -11,7 +11,7 @@ SYNOPSIS
 --------
 *hid-recorder*
 
-*hid-recorder* [OPTIONS] [/dev/hidrawX]
+*hid-recorder* [OPTIONS] [/dev/hidrawX] [[/dev/hidrawY] ... ]
 
 OPTIONS
 -------
@@ -32,6 +32,9 @@ events in order to replay them through the uhid kernel module.
 The first invocation type displayed above (without arguments) causes
 hid-recorder to let the user choose which hidraw she will use, including the
 name the device.
+
+Several hidraw nodes can be given to *hid-recorder*. In this case, the recording
+of each node are multiplexed thanks to the tag *D:* as seen below.
 
 *hid-recorder* needs to be able to read from the hidraw device; in most cases this
 means it must be run as root.

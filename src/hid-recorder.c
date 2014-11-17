@@ -43,6 +43,7 @@
 #include <getopt.h>
 #include <dirent.h>
 #include <signal.h>
+#include <poll.h>
 
 /* C */
 #include <stdio.h>
@@ -84,6 +85,7 @@ struct hid_recorder_device {
 
 struct hid_recorder_state {
 	enum hid_recorder_mode mode;
+	struct pollfd *fds;
 	struct hid_recorder_device *devices;
 	struct hid_recorder_device *current;
 	int device_count;
@@ -99,13 +101,15 @@ static struct hid_recorder_state state = {0};
 static int usage(void)
 {
 	printf("USAGE:\n");
-	printf("   %s [OPTION] [/dev/hidrawX]\n", program_invocation_short_name);
+	printf("   %s [OPTION] [/dev/hidrawX] [[/dev/hidrawY] ... ]\n", program_invocation_short_name);
 
 	printf("\n");
 	printf("where OPTION is either:\n");
 	printf("   -h or --help: print this message\n");
 	printf("   -d or --debugfs: use HID debugfs instead of hidraw node (use this when\n"
 		"                    no events are coming from hidraw while using the device)\n");
+	printf("\n");
+	printf("Note that you can pass several hidraw device nodes at once.\n");
 	return EXIT_FAILURE;
 }
 
@@ -497,6 +501,7 @@ static void destroy_devices(struct hid_recorder_state *state)
 		destroy_device(&state->devices[i]);
 
 	free(state->devices);
+	free(state->fds);
 }
 
 static void signal_callback_handler(int signum)
@@ -513,8 +518,9 @@ int main(int argc, char **argv)
 {
 	int ret, i;
 	char *filename;
-	int device_count = 1;
+	int device_count;
 	struct hid_recorder_device *devices, *device;
+	struct pollfd *fds;
 
 	state.mode = MODE_HIDRAW;
 
@@ -532,9 +538,10 @@ int main(int argc, char **argv)
 		}
 	}
 
-	if (optind < argc)
+	if (optind < argc) {
+		device_count = argc - optind;
 		filename = strdup(argv[optind++]);
-	else {
+	} else {
 		if (getuid() != 0)
 			fprintf(stderr, "Not running as root, some devices "
 				"may not be available.\n");
@@ -542,17 +549,20 @@ int main(int argc, char **argv)
 		filename = scan_devices();
 		if (!filename)
 			return usage();
+		device_count = 1;
 	}
 
 	if (device_count <= 0)
 		return usage();
 
 	devices = calloc(device_count, sizeof(struct hid_recorder_device));
-	if (!devices)
+	fds = calloc(device_count, sizeof(struct pollfd));
+	if (!devices || !fds)
 		return -ENOMEM;
 
 	state.devices = devices;
 	state.device_count = device_count;
+	state.fds = fds;
 
 	for (i = 0; i < device_count; i++) {
 		device = &devices[i];
@@ -562,15 +572,26 @@ int main(int argc, char **argv)
 			free(filename);
 			goto out_clean;
 		}
+		fds[i].fd = device->fd;
+		fds[i].events = POLLIN;
 		free(filename);
+		if (device_count - i > 1)
+			filename = strdup(argv[optind++]);
 	}
 
 	signal(SIGINT, signal_callback_handler);
 
 	do {
-		ret = read_event(device);
-		if (ret > 0)
-			state.event_count++;
+		ret = poll(fds, device_count, -1);
+		if (ret >= 0) {
+			for (i = 0; i < device_count; i++) {
+				if (fds[i].revents & POLLIN) {
+					ret = read_event(&devices[i]);
+					if (ret > 0)
+						state.event_count++;
+				}
+			}
+		}
 	} while (ret >= 0);
 
 out_clean:
