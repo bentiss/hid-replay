@@ -84,8 +84,9 @@ struct hid_recorder_device {
 
 struct hid_recorder_state {
 	enum hid_recorder_mode mode;
-	struct hid_recorder_device *device;
+	struct hid_recorder_device *devices;
 	struct hid_recorder_device *current;
+	int device_count;
 	int event_count;
 };
 
@@ -488,11 +489,21 @@ static void destroy_device(struct hid_recorder_device *device)
 	device->fd = 0;
 }
 
+static void destroy_devices(struct hid_recorder_state *state)
+{
+	int i;
+
+	for (i = 0; i < state->device_count; i++)
+		destroy_device(&state->devices[i]);
+
+	free(state->devices);
+}
+
 static void signal_callback_handler(int signum)
 {
 	exit_recording_message();
 
-	destroy_device(state.device);
+	destroy_devices(&state);
 
 	/* Terminate program */
 	exit(signum);
@@ -500,9 +511,10 @@ static void signal_callback_handler(int signum)
 
 int main(int argc, char **argv)
 {
-	int ret;
+	int ret, i;
 	char *filename;
-	struct hid_recorder_device device = {0};
+	int device_count = 1;
+	struct hid_recorder_device *devices, *device;
 
 	state.mode = MODE_HIDRAW;
 
@@ -532,26 +544,37 @@ int main(int argc, char **argv)
 			return usage();
 	}
 
-	ret = open_device(filename, 0, &device);
-	if (ret) {
-		perror("Unable to open device");
-		free(filename);
-		return ret;
-	}
-	free(filename);
+	if (device_count <= 0)
+		return usage();
 
-	state.device = &device;
+	devices = calloc(device_count, sizeof(struct hid_recorder_device));
+	if (!devices)
+		return -ENOMEM;
+
+	state.devices = devices;
+	state.device_count = device_count;
+
+	for (i = 0; i < device_count; i++) {
+		device = &devices[i];
+		ret = open_device(filename, i, device);
+		if (ret) {
+			perror("Unable to open device");
+			free(filename);
+			goto out_clean;
+		}
+		free(filename);
+	}
 
 	signal(SIGINT, signal_callback_handler);
 
 	do {
-		ret = read_event(&device);
+		ret = read_event(device);
 		if (ret > 0)
 			state.event_count++;
 	} while (ret >= 0);
 
+out_clean:
 	exit_recording_message();
-
-	destroy_device(&device);
+	destroy_devices(&state);
 	return ret;
 }
