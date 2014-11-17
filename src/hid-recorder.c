@@ -77,7 +77,6 @@ struct hid_recorder_device {
 	char name[256];
 	char phys[256];
 	enum hid_recorder_mode mode;
-	struct timeval starttime;
 	char *buf_read;
 	char *buf_write;
 	size_t buf_size;
@@ -88,6 +87,7 @@ struct hid_recorder_state {
 	struct pollfd *fds;
 	struct hid_recorder_device *devices;
 	struct hid_recorder_device *current;
+	struct timeval starttime;
 	int device_count;
 	int event_count;
 };
@@ -345,7 +345,7 @@ static int read_hiddbg_event(struct hid_recorder_device *device)
 {
 	int size;
 	FILE *file = device->hid_dbg_file;
-	struct timeval *starttime = &device->starttime;
+	struct timeval *starttime = &state.starttime;
 	char **buf_read = &device->buf_read;
 	char **buf_write = &device->buf_write;
 	size_t *buf_size = &device->buf_size;
@@ -386,7 +386,7 @@ static int read_hiddbg_event(struct hid_recorder_device *device)
 static int read_hidraw_event(struct hid_recorder_device *device)
 {
 	int fd = device->fd;
-	struct timeval *starttime = &device->starttime;
+	struct timeval *starttime = &state.starttime;
 	char buf[4096];
 	int i, res;
 
@@ -461,7 +461,6 @@ static int open_device(const char *filename, int idx, struct hid_recorder_device
 	}
 
 	device->filename = strdup(filename);
-	memset(&device->starttime, 0x0, sizeof(device->starttime));
 
 	if (hid_dbg_event)
 		free(hid_dbg_event);
@@ -587,6 +586,7 @@ int main(int argc, char **argv)
 	state.devices = devices;
 	state.device_count = device_count;
 	state.fds = fds;
+	memset(&state.starttime, 0x0, sizeof(state.starttime));
 
 	for (i = 0; i < device_count; i++) {
 		device = &devices[i];
