@@ -1,7 +1,7 @@
 # Initialize Autoconf
 AC_PREREQ([2.60])
 AC_INIT([HID device replay],
-        [0.7.0],
+        [0.7.1],
         [],
         [hid-replay])
 AC_CONFIG_SRCDIR([Makefile.am])
