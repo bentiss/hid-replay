@@ -504,6 +504,30 @@ static void destroy_devices(struct hid_recorder_state *state)
 	free(state->fds);
 }
 
+static int cleanup_one_device(struct hid_recorder_state *state, int idx)
+{
+	/* index not in range, aborting */
+	if (idx >= state->device_count || idx < 0)
+		return state->device_count;
+
+	/* remove the device */
+	destroy_device(&state->devices[idx]);
+	state->device_count--;
+
+	/* the device was not at the end of the list, move the ones after */
+	if (idx < state->device_count) {
+		memmove(&state->devices[idx], &state->devices[idx + 1],
+			(state->device_count - idx) * sizeof(struct hid_recorder_device));
+		memmove(&state->fds[idx], &state->fds[idx + 1],
+			(state->device_count - idx) * sizeof(struct pollfd));
+	}
+
+	/* clear the end of the array to prevent any double free */
+	memset(&state->devices[state->device_count], 0, sizeof(struct hid_recorder_device));
+
+	return state->device_count;
+}
+
 static void signal_callback_handler(int signum)
 {
 	exit_recording_message();
@@ -589,10 +613,12 @@ int main(int argc, char **argv)
 					ret = read_event(&devices[i]);
 					if (ret > 0)
 						state.event_count++;
+				} else if (fds[i].revents & POLLHUP) {
+					device_count = cleanup_one_device(&state, i);
 				}
 			}
 		}
-	} while (ret >= 0);
+	} while (ret >= 0 && device_count > 0);
 
 out_clean:
 	exit_recording_message();
