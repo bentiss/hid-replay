@@ -34,6 +34,7 @@
 #include <fcntl.h>
 #include <unistd.h>
 #include <getopt.h>
+#include <signal.h>
 #include <poll.h>
 
 /* C */
@@ -68,6 +69,10 @@ struct hid_replay_devices_list {
 	struct list_head devices;
 	struct hid_replay_device *current;
 };
+
+/* global because used in the signal handler */
+static struct hid_replay_devices_list *devices;
+static FILE *fp;
 
 /**
  * Print usage information.
@@ -428,9 +433,17 @@ static int try_open_uhid()
 	return 0;
 }
 
+static void signal_callback_handler(int signum)
+{
+	fclose(fp);
+	hid_replay_destroy_devices(devices);
+
+	/* Terminate program */
+	exit(signum);
+}
+
 int main(int argc, char **argv)
 {
-	FILE *fp;
 	struct uhid_event event;
 	struct uhid_create_req dev;
 	struct timeval time;
@@ -440,8 +453,6 @@ int main(int argc, char **argv)
 	enum hid_replay_mode mode = MODE_INTERACTIVE;
 	int sleep_time = 0;
 	int error;
-
-	struct hid_replay_devices_list *devices;
 
 	memset(&event, 0, sizeof(event));
 	memset(&dev, 0, sizeof(dev));
@@ -489,6 +500,8 @@ int main(int argc, char **argv)
 
 	if (sleep_time)
 		sleep(sleep_time);
+
+	signal(SIGINT, signal_callback_handler);
 
 	stop = 0;
 	while (!stop) {
