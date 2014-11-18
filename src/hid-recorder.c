@@ -43,6 +43,7 @@
 #include <getopt.h>
 #include <dirent.h>
 #include <signal.h>
+#include <poll.h>
 
 /* C */
 #include <stdio.h>
@@ -66,8 +67,28 @@ enum hid_recorder_mode {
 	MODE_HID_DEBUGFS,
 };
 
+struct hid_recorder_device {
+	int fd;
+	int idx;
+	FILE *hid_dbg_file;
+	char *filename;
+	struct hidraw_report_descriptor rpt_desc;
+	struct hidraw_devinfo info;
+	char name[256];
+	char phys[256];
+	enum hid_recorder_mode mode;
+	char *buf_read;
+	char *buf_write;
+	size_t buf_size;
+};
+
 struct hid_recorder_state {
 	enum hid_recorder_mode mode;
+	struct pollfd *fds;
+	struct hid_recorder_device *devices;
+	struct hid_recorder_device *current;
+	struct timeval starttime;
+	int device_count;
 	int event_count;
 };
 
@@ -80,13 +101,15 @@ static struct hid_recorder_state state = {0};
 static int usage(void)
 {
 	printf("USAGE:\n");
-	printf("   %s [OPTION] [/dev/hidrawX]\n", program_invocation_short_name);
+	printf("   %s [OPTION] [/dev/hidrawX] [[/dev/hidrawY] ... ]\n", program_invocation_short_name);
 
 	printf("\n");
 	printf("where OPTION is either:\n");
 	printf("   -h or --help: print this message\n");
 	printf("   -d or --debugfs: use HID debugfs instead of hidraw node (use this when\n"
 		"                    no events are coming from hidraw while using the device)\n");
+	printf("\n");
+	printf("Note that you can pass several hidraw device nodes at once.\n");
 	return EXIT_FAILURE;
 }
 
@@ -215,7 +238,6 @@ static char* find_hid_dbg(struct hidraw_devinfo *info, struct hidraw_report_desc
 	{
 		char fname[256];
 		FILE *file;
-		char name[256] = "???";
 		int size;
 
 		snprintf(fname, sizeof(fname),
@@ -243,14 +265,20 @@ static char* find_hid_dbg(struct hidraw_devinfo *info, struct hidraw_report_desc
 	return filename;
 }
 
-static int fetch_hidraw_information(int fd, struct hidraw_report_descriptor *rpt_desc,
-		struct hidraw_devinfo *info, char *name, char *phys)
+static int fetch_hidraw_information(struct hid_recorder_device *device)
 {
+	int fd = device->fd;
+	struct hidraw_report_descriptor *rpt_desc = &device->rpt_desc;
+	struct hidraw_devinfo *info = &device->info;
+	char *name = device->name;
+	char *phys = device->phys;
 	int i, res, desc_size = 0;
-	memset(rpt_desc, 0x0, sizeof(rpt_desc));
-	memset(info, 0x0, sizeof(info));
+	memset(rpt_desc, 0x0, sizeof(*rpt_desc));
+	memset(info, 0x0, sizeof(*info));
 	memset(name, 0x0, 256);
 	memset(phys, 0x0, 256);
+
+	printf("D: %d\n", device->idx);
 
 	/* Get Report Descriptor Size */
 	res = ioctl(fd, HIDIOCGRDESCSIZE, &desc_size);
@@ -313,10 +341,14 @@ static void print_currenttime(struct timeval *starttime)
 	printf("%lu.%06u", currenttime.tv_sec, (unsigned)currenttime.tv_usec);
 }
 
-static int read_hiddbg_event(FILE *file, struct timeval *starttime,
-		char **buf_read, char **buf_write, size_t *buf_size)
+static int read_hiddbg_event(struct hid_recorder_device *device)
 {
 	int size;
+	FILE *file = device->hid_dbg_file;
+	struct timeval *starttime = &state.starttime;
+	char **buf_read = &device->buf_read;
+	char **buf_write = &device->buf_write;
+	size_t *buf_size = &device->buf_size;
 	int old_buf_size = *buf_size;
 
 	/* Get a report from the device */
@@ -351,10 +383,11 @@ static int read_hiddbg_event(FILE *file, struct timeval *starttime,
 	return 0; /* not a raw report */
 }
 
-static int read_hidraw_event(int fd, struct timeval *starttime)
+static int read_hidraw_event(struct hid_recorder_device *device)
 {
+	int fd = device->fd;
+	struct timeval *starttime = &state.starttime;
 	char buf[4096];
-	struct timeval currenttime;
 	int i, res;
 
 	/* Get a report from the device */
@@ -382,9 +415,123 @@ static void exit_recording_message()
 			state.mode == MODE_HIDRAW ? "add" : "remove");
 }
 
+static int read_event(struct hid_recorder_device *device)
+{
+	if (state.current != device){
+		printf("D: %d\n", device->idx);
+		state.current = device;
+	}
+
+	if (device->hid_dbg_file)
+		return read_hiddbg_event(device);
+
+	return read_hidraw_event(device);
+}
+
+static int open_device(const char *filename, int idx, struct hid_recorder_device *device)
+{
+	int ret;
+	char *hid_dbg_event = NULL;
+	int fd = open(filename, O_RDWR);
+
+	if (fd < 0)
+		return EXIT_FAILURE;
+
+	device->fd = fd;
+	device->idx = idx;
+	if (fetch_hidraw_information(device) != EXIT_SUCCESS) {
+		ret = EXIT_FAILURE;
+		goto out_err;
+	}
+
+	/* try to use hid debug sysfs instead of hidraw to retrieve the events */
+	if (state.mode == MODE_HID_DEBUGFS)
+		hid_dbg_event = find_hid_dbg(&device->info, &device->rpt_desc);
+
+	if (hid_dbg_event) {
+		fprintf(stderr, "reading debug interface %s instead of %s\n",
+			hid_dbg_event, filename);
+		/* keep fd opened to keep the device powered */
+		device->hid_dbg_file = fopen(hid_dbg_event, "r");
+		if (!device->hid_dbg_file) {
+			perror("Unable to open HID debug interface");
+			ret = EXIT_FAILURE;
+			goto out_err;
+		}
+	}
+
+	device->filename = strdup(filename);
+
+	if (hid_dbg_event)
+		free(hid_dbg_event);
+	return 0;
+
+out_err:
+	if (hid_dbg_event)
+		free(hid_dbg_event);
+	if (device->hid_dbg_file)
+		fclose(device->hid_dbg_file);
+	if (fd > 0)
+		close(fd);
+	return ret;
+}
+
+static void destroy_device(struct hid_recorder_device *device)
+{
+	if (!device->fd)
+		return;
+
+	if (device->hid_dbg_file)
+		fclose(device->hid_dbg_file);
+	if (device->buf_size) {
+		free(device->buf_read);
+		free(device->buf_write);
+	}
+	free(device->filename);
+	close(device->fd);
+	device->fd = 0;
+}
+
+static void destroy_devices(struct hid_recorder_state *state)
+{
+	int i;
+
+	for (i = 0; i < state->device_count; i++)
+		destroy_device(&state->devices[i]);
+
+	free(state->devices);
+	free(state->fds);
+}
+
+static int cleanup_one_device(struct hid_recorder_state *state, int idx)
+{
+	/* index not in range, aborting */
+	if (idx >= state->device_count || idx < 0)
+		return state->device_count;
+
+	/* remove the device */
+	destroy_device(&state->devices[idx]);
+	state->device_count--;
+
+	/* the device was not at the end of the list, move the ones after */
+	if (idx < state->device_count) {
+		memmove(&state->devices[idx], &state->devices[idx + 1],
+			(state->device_count - idx) * sizeof(struct hid_recorder_device));
+		memmove(&state->fds[idx], &state->fds[idx + 1],
+			(state->device_count - idx) * sizeof(struct pollfd));
+	}
+
+	/* clear the end of the array to prevent any double free */
+	memset(&state->devices[state->device_count], 0, sizeof(struct hid_recorder_device));
+
+	return state->device_count;
+}
+
 static void signal_callback_handler(int signum)
 {
 	exit_recording_message();
+
+	destroy_devices(&state);
 
 	/* Terminate program */
 	exit(signum);
@@ -392,19 +539,11 @@ static void signal_callback_handler(int signum)
 
 int main(int argc, char **argv)
 {
-	int fd;
-	int ret;
-	struct hidraw_report_descriptor rpt_desc;
-	struct hidraw_devinfo info;
-	char name[256];
-	char phys[256];
-	char *device;
-	char *hid_dbg_event = NULL;
-	struct timeval starttime;
-	FILE *hid_dbg_file = NULL;
-	char *buf_read = NULL;
-	char *buf_write = NULL;
-	size_t buf_size = 0;
+	int ret, i;
+	char *filename;
+	int device_count;
+	struct hid_recorder_device *devices, *device;
+	struct pollfd *fds;
 
 	state.mode = MODE_HIDRAW;
 
@@ -422,67 +561,67 @@ int main(int argc, char **argv)
 		}
 	}
 
-	if (optind < argc)
-		device = argv[optind++];
-	else {
+	if (optind < argc) {
+		device_count = argc - optind;
+		filename = strdup(argv[optind++]);
+	} else {
 		if (getuid() != 0)
 			fprintf(stderr, "Not running as root, some devices "
 				"may not be available.\n");
 
-		device = scan_devices();
-		if (!device)
+		filename = scan_devices();
+		if (!filename)
 			return usage();
+		device_count = 1;
 	}
 
-	fd = open(device, O_RDWR);
+	if (device_count <= 0)
+		return usage();
 
-	if (fd < 0) {
-		perror("Unable to open device");
-		return EXIT_FAILURE;
-	}
+	devices = calloc(device_count, sizeof(struct hid_recorder_device));
+	fds = calloc(device_count, sizeof(struct pollfd));
+	if (!devices || !fds)
+		return -ENOMEM;
 
-	if (fetch_hidraw_information(fd, &rpt_desc, &info, name, phys) != EXIT_SUCCESS)
-		return EXIT_FAILURE;
+	state.devices = devices;
+	state.device_count = device_count;
+	state.fds = fds;
+	memset(&state.starttime, 0x0, sizeof(state.starttime));
 
-	/* try to use hid debug sysfs instead of hidraw to retrieve the events */
-	if (state.mode == MODE_HID_DEBUGFS)
-		hid_dbg_event = find_hid_dbg(&info, &rpt_desc);
-
-	if (hid_dbg_event) {
-		fprintf(stderr, "reading debug interface %s instead of %s\n",
-			hid_dbg_event, device);
-		/* keep fd opened to keep the device powered */
-		hid_dbg_file = fopen(hid_dbg_event, "r");
-		if (!hid_dbg_file) {
-			perror("Unable to open HID debug interface");
-			ret = EXIT_FAILURE;
-			goto out;
+	for (i = 0; i < device_count; i++) {
+		device = &devices[i];
+		ret = open_device(filename, i, device);
+		if (ret) {
+			perror("Unable to open device");
+			free(filename);
+			goto out_clean;
 		}
+		fds[i].fd = device->fd;
+		fds[i].events = POLLIN;
+		free(filename);
+		if (device_count - i > 1)
+			filename = strdup(argv[optind++]);
 	}
 
 	signal(SIGINT, signal_callback_handler);
 
-	memset(&starttime, 0x0, sizeof(starttime));
 	do {
-		if (hid_dbg_file)
-			ret = read_hiddbg_event(hid_dbg_file, &starttime, &buf_read, &buf_write, &buf_size);
-		else
-			ret = read_hidraw_event(fd, &starttime);
-		if (ret > 0)
-			state.event_count++;
-	} while (ret >= 0);
+		ret = poll(fds, device_count, -1);
+		if (ret >= 0) {
+			for (i = 0; i < device_count; i++) {
+				if (fds[i].revents & POLLIN) {
+					ret = read_event(&devices[i]);
+					if (ret > 0)
+						state.event_count++;
+				} else if (fds[i].revents & POLLHUP) {
+					device_count = cleanup_one_device(&state, i);
+				}
+			}
+		}
+	} while (ret >= 0 && device_count > 0);
 
+out_clean:
 	exit_recording_message();
-
-out:
-	if (hid_dbg_event)
-		free(hid_dbg_event);
-	if (hid_dbg_file)
-		fclose(hid_dbg_file);
-	if (buf_size) {
-		free(buf_read);
-		free(buf_write);
-	}
-	close(fd);
+	destroy_devices(&state);
 	return ret;
 }

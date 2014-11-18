@@ -25,7 +25,10 @@
 
 import sys
 from optparse import OptionParser
-nomem = True
+
+current_device = None
+known_devices = []
+hid_devices = {}
 
 class HID_Device(object):
 	def __init__(self, bus, id):
@@ -46,7 +49,7 @@ class HID_Device(object):
 		self.wLANGID = None
 		self.rdesc = {}
 		self.incomming_data = {}
-		self.init_timestamps = {}
+		self.init_timestamp = None
 		self.endpointMapping = {}
 
 def extract_bytes(string):
@@ -175,13 +178,20 @@ def parse_desc_string_request(ctrl, data, device):
 def parse_desc_rdesc_request(ctrl, data, device):
 	if data == "0":
 		return
+	if ctrl.wIndex in known_devices:
+		return
 	length, content = prep_incoming_data(data)
 	device.rdesc[ctrl.wIndex] = length, content
 #	device.incomming_data.append((timestamp, length, " ".join(content)))
-	if nomem:
-		print get_description(device, ctrl.wIndex)
-		print get_rdesc(device, ctrl.wIndex)
-		print get_devinfo(device)
+	desc = get_description(device, ctrl.wIndex)
+	if desc:
+		print desc
+	print get_rdesc(device, ctrl.wIndex)
+	name = get_name(device)
+	if name:
+		print name
+	print get_devinfo(device)
+	known_devices.append(ctrl.wIndex)
 
 def parse_set_report_request(ctrl, data, device):
 	type_dict = {
@@ -196,7 +206,11 @@ def parse_set_report_request(ctrl, data, device):
 	type = (ctrl.wValue >> 8) & 0xff
 	type = type_dict[type]
 	# we do not store them for later like we do for the others
-	print get_description(device, ctrl.wIndex)
+	if not ctrl.wIndex in known_devices:
+		return
+	desc = get_description(device, ctrl.wIndex)
+	if desc:
+		print desc
 	print "# SET_REPORT (%s) ID: %02x -> %s (length %d)"% (type, reportID, " ".join(content), ctrl.wLength)
 
 def interrupt(timestamp, address, data, device, intf):
@@ -210,9 +224,13 @@ def interrupt(timestamp, address, data, device, intf):
 		pipe = device.endpointMapping[endpoint]
 	if not device.incomming_data.has_key(pipe):
 		device.incomming_data[pipe] = []
+	if not pipe in known_devices:
+		return
 	device.incomming_data[pipe].append((timestamp, length, " ".join(content)))
-	if nomem and (intf == None or int(intf) == pipe):
-		print get_description(device, pipe)
+	if intf == None or int(intf) == pipe:
+		desc = get_description(device, pipe)
+		if desc:
+			print desc
 		print get_event(device, pipe, -1)
 
 class HidCommand(object):
@@ -255,7 +273,6 @@ HID_COMMANDS = (
 )
 
 def usbmon2hid_replay(f_in, intf):
-	hid_devices = {}
 	current_request = null_request
 	current_params = None
 	while True:
@@ -315,6 +332,11 @@ def get_rdesc(device, index):
 	return "R: " + str(length) + " " + " ".join(rdesc)
 
 def get_description(device, index):
+	global current_device
+	if current_device == index:
+		return None
+
+	current_device = index
 	desc = "# " + device.id + ":" + str(index) + " -> "
 	if device.idVendor and device.idProduct:
 		desc += device.idVendor + ":" + device.idProduct
@@ -322,6 +344,9 @@ def get_description(device, index):
 			desc += " / " + device.iManufacturer
 		if isinstance(device.iProduct, str):
 			desc += " | " + device.iProduct
+
+	desc += '\nD:' + str(index)
+
 	return desc
 
 def get_name(device):
@@ -341,51 +366,11 @@ def get_devinfo(device):
 
 def get_event(device, index, num):
 	ts, length, data = device.incomming_data[index][num]
-	if not device.init_timestamps.has_key(index):
-		device.init_timestamps[index] = long(ts)
-	ts = long(ts) - device.init_timestamps[index]
+	if not device.init_timestamp:
+		for d in hid_devices.values():
+			d.init_timestamp = long(ts)
+	ts = long(ts) - device.init_timestamp
 	return "E: {0:.06f} {1} {2}".format(ts / 1000000.0, length, data)
-
-def print_hid_replay_dev(device, index):
-	print get_description(device, index)
-	if device.rdesc.has_key(index):
-		print get_rdesc(device, index)
-	name = get_name(device)
-	if name:
-		print name
-	print get_devinfo(device)
-	if device.incomming_data.has_key(index):
-		for num in xrange(len(device.incomming_data[index])):
-			print get_event(device, index, num)
-	print ""
-	#print tag, timestamp, event_type, address, status, usbmon_data
-
-def print_hid_replay(hid_devices, intf, vendorID = None, productID = None):
-	if vendorID:
-		try:
-			vendorID = vendorID.upper()
-		except:
-			vendorID = "%04X"%vendorID
-	if productID:
-		try:
-			productID = productID.upper()
-		except:
-			productID = "%04X"%productID
-	for dev in hid_devices.values():
-		if (vendorID  != None and vendorID  != dev.idVendor) or \
-		   (productID != None and productID != dev.idProduct):
-			continue
-		if dev.id == "001":
-			#ignore hub
-			continue
-		dev_indexes = dev.rdesc.keys()
-		for i in dev.incomming_data.keys():
-			if not i in dev_indexes:
-				dev_indexes.append(i)
-		dev_indexes.sort()
-		for i in dev_indexes:
-			if intf == None or int(intf) == i:
-				print_hid_replay_dev(dev, i)
 
 def get_options():
 	parser = OptionParser()
@@ -397,13 +382,8 @@ def main():
 	f = sys.stdin
 	(options, args) = get_options()
 	if len(args) > 0:
-		global nomem
 		f = open(args[0])
-		nomem = False
 	devs = usbmon2hid_replay(f, options.intf)
-	if not nomem:
-#		print_hid_replay(devs, options.intf, vendorID = 0x056a)
-		print_hid_replay(devs, options.intf, vendorID = None)
 	f.close()
 
 if __name__ == "__main__":
