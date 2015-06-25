@@ -410,7 +410,7 @@ static int read_hidraw_event(struct hid_recorder_device *device)
 static void exit_recording_message()
 {
 	if (!state.event_count)
-		fprintf(stderr, "\nNo events where recorded.\n"
+		fprintf(stderr, "\nNo events were recorded.\n"
 				"You may need to %s the option \"--debugfs\" to get more recordings.\n",
 			state.mode == MODE_HIDRAW ? "add" : "remove");
 }
