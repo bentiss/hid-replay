@@ -68,6 +68,25 @@ collections = {
 	'LOGICAL'		:2,
 }
 
+sensor_mods = {
+	0x00: 'Mod None',
+	0x10: 'Mod Change Sensitivity Abs',
+	0x20: 'Mod Max',
+	0x30: 'Mod Min',
+	0x40: 'Mod Accuracy',
+	0x50: 'Mod Resolution',
+	0x60: 'Mod Threshold High',
+	0x70: 'Mod Threshold Low',
+	0x80: 'Mod Calibration Offset',
+	0x90: 'Mod Calibration Multiplier',
+	0xa0: 'Mod Report Interval',
+	0xb0: 'Mod Frequency Max',
+	0xc0: 'Mod Period Max',
+	0xd0: 'Mod Change Sensitivity Range Percent',
+	0xe0: 'Mod Change Sensitivity Rel Percent',
+	0xf0: 'Mod Vendor Reserved',
+}
+
 inv_hid = {}
 hid_type = {}
 for type, items in hid_items.iteritems():
@@ -77,10 +96,12 @@ for type, items in hid_items.iteritems():
 
 usages = parse_hut.parse()
 
+usage_pages = {}
 inv_usage_pages = {}
 inv_usages = {}
 for usage, (name, filename, usage_list) in usages.iteritems():
 	inv_usage_pages[usage] = name
+	usage_pages[name] = usage
 	for k, v in usage_list.iteritems():
 		inv_usages[(usage << 16) | k] = v
 
