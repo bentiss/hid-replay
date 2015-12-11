@@ -320,6 +320,11 @@ def get_human_descr(rdesc_item, indent):
 		usage = value | up
 		if inv_usages.has_key(usage):
 			descr +=  " (" + inv_usages[usage] + ')'
+		elif up == usage_pages['Sensor'] << 16:
+			mod = (usage & 0xF000) >> 8
+			usage &= ~0xF000
+			mod_descr = sensor_mods[mod]
+			descr +=  " (" + inv_usages[usage] + ' | ' + mod_descr + ')'
 		elif (usage & 0xFF000000) == 0xBE000000 and inv_usages.has_key(usage & 0x00FF00FF):
 			descr +=  " (" + inv_usages[usage & 0x00FF00FF] + ' << ' + str((usage >> 8) & 0xFF) + ')'
 		else:
