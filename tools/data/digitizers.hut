@@ -53,7 +53,9 @@
 54	Contact Count
 55	Contact Max
 56	Scan Time
-57-59	Reserved
+57	Surface Switch
+58	Button Switch
+59	Button Type
 5A	Secondary Barrel Switch
 5B	Transducer Serial Number
 5C-FFFF	Reserved
