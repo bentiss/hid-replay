@@ -192,7 +192,7 @@ class USBInterface(UDevObject):
 
 		# call lsusb -v
 		lsusbcall = "lsusb -v -d {0}:{1}".format(self.parent.vid, self.parent.pid)
-		subprocess.call(shlex.split(lsusbcall), stdout=subprocess.PIPE)
+		subprocess.call(shlex.split(lsusbcall), stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
 
 		#rebind the device
 		self.rebind()

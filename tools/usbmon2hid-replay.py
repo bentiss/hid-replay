@@ -62,7 +62,7 @@ def prep_incoming_data(data):
 	content = extract_bytes(content)
 	return length, content
 
-def null_request(params, data, device):
+def null_request(params, data, device, intf):
 	return
 
 def print_request(params, data, device):
@@ -85,7 +85,7 @@ def parse_desc_request(data):
 		length += length_v
 	return result
 
-def parse_desc_device_request(params, data, device):
+def parse_desc_device_request(params, data, device, intf):
 	length, type, content = parse_desc_request(data)[0]
 	if not length:
 		return
@@ -105,7 +105,7 @@ def parse_desc_device_request(params, data, device):
 
 	#print device.bcdUSB, device.bdeviceClass, device.bdeviceSubClass, device.bdeviceProtocol, device.bMaxPacketSize0, "0x{0}:0x{1}".format(device.idVendor, device.idProduct), device.bcdDevice, device.iManufacturer, device.iProduct, device.iSerialNumber, device.bNumConfiguration
 
-def parse_desc_configuration_request(params, data, device):
+def parse_desc_configuration_request(params, data, device, intf):
 	confs = parse_desc_request(data)
 	if not confs[0][0]:
 		return
@@ -153,7 +153,7 @@ def parse_ctrl_parts(ctrl):
 	out.wLength = read_le16(ctrl[6:])
 	return out
 
-def parse_desc_string_request(ctrl, data, device):
+def parse_desc_string_request(ctrl, data, device, intf):
 	length, type, content = parse_desc_request(data)[0]
 	if not length:
 		return
@@ -175,10 +175,12 @@ def parse_desc_string_request(ctrl, data, device):
 #	else:
 #		print params, length, type, utf16s_to_utf8s(length, content)
 
-def parse_desc_rdesc_request(ctrl, data, device):
+def parse_desc_rdesc_request(ctrl, data, device, intf):
 	if data == "0":
 		return
 	if ctrl.wIndex in known_devices:
+		return
+	if intf != None and str(ctrl.wIndex) != intf:
 		return
 	length, content = prep_incoming_data(data)
 	device.rdesc[ctrl.wIndex] = length, content
@@ -193,7 +195,7 @@ def parse_desc_rdesc_request(ctrl, data, device):
 	print get_devinfo(device)
 	known_devices.append(ctrl.wIndex)
 
-def parse_set_report_request(ctrl, data, device):
+def parse_set_report_request(ctrl, data, device, intf):
 	type_dict = {
 		0x01: "Input",
 		0x02: "Output",
@@ -294,7 +296,7 @@ def usbmon2hid_replay(f_in, intf):
 				ctrl, debug = current_params
 				if debug:
 					print "<---", line,
-				current_request(ctrl, usbmon_data, hid_devices[dev_address])
+				current_request(ctrl, usbmon_data, hid_devices[dev_address], intf)
 				current_params = None
 			else:
 				for command in HID_COMMANDS:
@@ -315,7 +317,7 @@ def usbmon2hid_replay(f_in, intf):
 						if debug:
 							print "--->", line,
 							print "    ", req_name, dev_address, current_params
-						host_request(ctrl, data, hid_devices[dev_address])
+						host_request(ctrl, data, hid_devices[dev_address], intf)
 						break
 				else:
 					current_request = null_request

@@ -136,7 +136,7 @@ class ReportDescriptor(object):
 		return None
 
 	def close_rdesc(self):
-		if self.report_ID:
+		if self.report_ID and self.r_size > 8:
 			self.reports[self.report_ID] = self.report, (self.r_size >> 3)
 			self.report = []
 			self.r_size = 0
@@ -148,7 +148,7 @@ class ReportDescriptor(object):
 		value = rdesc_item.value
 
 		if item == "Report ID":
-			if self.report_ID and self.r_size > 0:
+			if self.report_ID and self.r_size > 8:
 				self.reports[self.report_ID] = self.report, (self.r_size >> 3)
 			self.report = []
 			self.report_ID = value
