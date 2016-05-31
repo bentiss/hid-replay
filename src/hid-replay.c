@@ -46,8 +46,13 @@
 
 #define _GNU_SOURCE
 #include <errno.h>
+#ifdef __UCLIBC__
+extern const char *program_invocation_name;
+extern const char *program_invocation_short_name;
+#else
 extern char *program_invocation_name;
 extern char *program_invocation_short_name;
+#endif
 
 #define UHID_NODE	"/dev/uhid"
 __u8 rdesc_buf[4096];
