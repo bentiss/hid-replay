@@ -352,6 +352,29 @@ static struct hid_replay_devices_list *hid_replay_create_devices(FILE *fp)
 	return list;
 }
 
+static void hid_replay_incoming_event(int fd, struct uhid_event *r_event)
+{
+	struct uhid_event w_event = { 0 };
+
+	switch (r_event->type) {
+	case UHID_GET_REPORT:
+		w_event.type = UHID_GET_REPORT_REPLY;
+		w_event.u.get_report_reply.id = r_event->u.get_report.id;
+		w_event.u.get_report_reply.err = -EIO;
+		w_event.u.get_report_reply.size = 0;
+		write(fd, &w_event, sizeof(w_event));
+		break;
+	case UHID_OPEN:
+	case UHID_START:
+		/* do nothing */
+		break;
+	default:
+		fprintf(stderr,
+			"received unknown uhid event %d\n",
+			r_event->type);
+	}
+}
+
 static int hid_replay_wait_opened(struct hid_replay_devices_list *devices)
 {
 	int i, ret;
@@ -381,9 +404,12 @@ static int hid_replay_wait_opened(struct hid_replay_devices_list *devices)
 			for (i=0; i < count; i++) {
 				if (fds[i].revents & POLLIN) {
 					read(fds[i].fd, &event, sizeof(event));
-					if(event.type == UHID_OPEN) {
+					if (event.type == UHID_OPEN) {
 						ret = 0;
 						goto out;
+					} else {
+						hid_replay_incoming_event(fds[i].fd,
+									  &event);
 					}
 				}
 			}
