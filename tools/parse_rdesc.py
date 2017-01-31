@@ -321,7 +321,10 @@ def get_human_descr(rdesc_item, indent):
 			mod = (usage & 0xF000) >> 8
 			usage &= ~0xF000
 			mod_descr = sensor_mods[mod]
-			descr +=  " (" + inv_usages[usage] + ' | ' + mod_descr + ')'
+			try:
+				descr +=  " (" + inv_usages[usage] + ' | ' + mod_descr + ')'
+			except:
+				descr +=  " (Unknown Usage 0x{:02x})".format(value)
 		else:
 			descr +=  " (Vendor Usage 0x{:02x})".format(value)
 	elif item == "Input" \
