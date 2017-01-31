@@ -59,4 +59,23 @@
 5A	Secondary Barrel Switch
 5B	Transducer Serial Number
 5C	Preferred Inking Color
-5D-FFFF	Reserved
+5D	Preferred Color is Locked
+5E	Preferred Line Width
+5F	Preferred Line Width is Locked
+70	Preferred Line Style
+71	Preferred Line Style is Locked
+72	Ink
+73	Pencil
+74	Highlighter
+75	Chisel Marker
+76	Brush
+77	No preference
+78-7F	Reserved for future line styles
+80	Digitizer Diagnostic
+81	Digitizer Error
+82	Err Normal Status
+83	Err Transducers Exceeded
+84	Err Full Trans Features Unavail
+85	Err Charge Low
+86-8F	Reserved for future errors
+90-FFFF	Reserved
