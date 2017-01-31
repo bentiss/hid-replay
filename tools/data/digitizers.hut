@@ -58,4 +58,5 @@
 59	Button Type
 5A	Secondary Barrel Switch
 5B	Transducer Serial Number
-5C-FFFF	Reserved
+5C	Preferred Inking Color
+5D-FFFF	Reserved
