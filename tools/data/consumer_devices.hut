@@ -391,4 +391,5 @@ F6-FF	Reserved
 29A	AC Split
 29B	AC Disribute Horizontally
 29C	AC Distribute Vertically
-29D-FFFF	Reserved
+29D	AC Next Keyboard Layout Select
+29E-FFFF	Reserved
