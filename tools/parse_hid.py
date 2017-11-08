@@ -67,6 +67,8 @@ def get_report(time, report, rdesc, numbered):
 		sep = '/'
 		total_bit_offset = 8 # first byte is report ID, actual data starts at 8
 	prev = None
+	usages_printed = {}
+	indent_2nd_line = len(output)
 	for report_item in report_descriptor:
 		size = report_item["size"]
 		array = not (report_item["type"] & (0x1 << 1)) # Variable
@@ -91,6 +93,18 @@ def get_report(time, report, rdesc, numbered):
 			if isinstance(values[0], str):
 				value_format = "{}"
 			usage = " " + get_usage(report_item["usage"]) + ':'
+
+			# if we don't get a key error this is a duplicate in
+			# this report descriptior and we need a linebreak
+			try:
+				_ = usages_printed[usage]
+				usages_printed = {}
+				output += '\n' + indent_2nd_line * ' '
+			except KeyError:
+				pass
+			finally:
+				usages_printed[usage] = True
+
 			if prev and prev["type"] == report_item["type"] and prev["usage"] == report_item["usage"]:
 				sep = ","
 				usage = ""
