@@ -404,7 +404,22 @@ F6-FF	Reserved
 2A1	ACSoft Key Right
 2A2-2AF	Reserved
 2B0	AC Idle Keep Alive
-2B1-4FF	Reserved
+2B1-2BF	Reserved
+2C0	Extended Keyboard Attributes Collection
+2C1	Keyboard Form Factor
+2C2	Keyboard Key Type
+2C3	Keyboard Physical Layout
+2C4	Vendor-Specific Keyboard Physical Layout
+2C5	Keyboard IETF Language Tag Index
+2C6	Implemented Keyboard Input AssistControls
+2C7	Keyboard Input Assist Previous
+2C8	Keyboard Input Assist NextS
+2C9	Keyboard Input Assist Previous Group
+2CA	Keyboard Input Assist NextGroup
+2CB	Keyboard Input Assist Accept
+2CC	Keyboard Input Assist Cancel
+2CB-0x2DF	Reserved
+2E0-4FF	Reserved
 500	Contact Edited
 501	Contact Added
 502	Contact Record Active
