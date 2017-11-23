@@ -28,34 +28,35 @@ DATA_DIR = os.path.join(SCRIPT_DIR, DATA_DIRNAME)
 
 
 def parse_usages(usage_list):
-	usages = {}
-	idx, page_name = None, None
-	for line in usage_list:
-		line = line.strip()
-		if not line:
-			continue
-		if line.startswith('('):
-			idx, page_name = line.split('\t')
-			idx = int(idx.lstrip('(').rstrip(')'))
-			continue
-		usage, name = line.split('\t')
-		if 'reserved' in name.lower():
-			continue
-		if '-' in usage:
-			print(line)
-			continue
-		usages[int(usage, 16)] = name
-	return idx, page_name, usages
+    usages = {}
+    idx, page_name = None, None
+    for line in usage_list:
+        line = line.strip()
+        if not line:
+            continue
+        if line.startswith('('):
+            idx, page_name = line.split('\t')
+            idx = int(idx.lstrip('(').rstrip(')'))
+            continue
+        usage, name = line.split('\t')
+        if 'reserved' in name.lower():
+            continue
+        if '-' in usage:
+            print(line)
+            continue
+        usages[int(usage, 16)] = name
+    return idx, page_name, usages
+
 
 def parse():
-	usages = {}
-	for filename in os.listdir(DATA_DIR):
-		if filename.endswith('.hut'):
-			with open(os.path.join(DATA_DIR, filename), 'r') as f:
-				try:
-					idx, name, usages_list = parse_usages(f.readlines())
-					usages[idx] = (name, filename, usages_list)
-				except UnicodeDecodeError:
-					print(filename)
-					raise
-	return usages
+    usages = {}
+    for filename in os.listdir(DATA_DIR):
+        if filename.endswith('.hut'):
+            with open(os.path.join(DATA_DIR, filename), 'r') as f:
+                try:
+                    idx, name, usages_list = parse_usages(f.readlines())
+                    usages[idx] = (name, filename, usages_list)
+                except UnicodeDecodeError:
+                    print(filename)
+                    raise
+    return usages
