@@ -37,7 +37,10 @@
 66	Still
 67	Picture-in-Picture Toggle
 68	Picture-in-Picture Swap
-69-6C	Reserved
+69	Red Menu Button
+6A	Green Menu Button
+6B	Blue Menu Button
+6C	Yellow Menu Button
 6D	Aspect
 6E	3D Mode Select
 6F	Display Brightness Increment
