@@ -70,4 +70,43 @@ BC	Phone Key A
 BD	Phone Key B
 BE	Phone Key C
 BF	Phone Key D
-C0-FFFF	Reserved
+C0	Phone Call History Key
+C1	Phone Caller ID Key
+C2	Phone Settings Key
+C3-DF	Reserved
+F0	Host Control
+F1	Host Available
+F2	Host Call Active
+F3	Activate Handset Audio
+F4	Ring Type
+F5	Re-dialable Phone Number
+F6-F7	Reserved
+F8	Stop Ring Tone
+F9	PSTN Ring Tone
+FA	Host Ring Tone
+FB	Alert Sound Error
+FC	Alert Sound Confirm
+FD	Alert Sound Notification
+FE	Silent Ring
+FF-107	Reserved
+108	Email Message Waiting
+109	oicemail Message Waiting
+10A	ost Hold
+109-10F	Reserved
+110	Incoming Call History Count
+111	Outgoing Call History Count
+112	Incoming Call History
+113	Outgoing Call History
+114	Phone Locale
+115-13F	Reserved
+140	Phone Time Second
+141	Phone Time Minute
+142	Phone Time Hour
+143	Phone Date Day
+144	Phone Date Month
+145	Phone Date Year
+146	Handset Nickname
+147	Address Book ID
+14A	Call Duration
+14B	Dual Mode Phone
+14C-FFFF	Reserved

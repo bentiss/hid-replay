@@ -9,3 +9,7 @@
 24	Security Code Character Entered
 25	Security Code Character Erased
 26	Security Code Cleared
+27	Sequence ID
+28	Sequence ID Reset
+29	RF Signal Strength
+2A-FFFF	Reserved

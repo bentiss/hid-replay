@@ -72,4 +72,15 @@
 93	Soft Button Offset1
 94	Soft Button Offset2
 95	Soft Button Report
-96-FFFF	Reserved
+96-C1	Reserved
+C2	Soft Keys
+C3-CB	Reserved
+CC	Display Data Extensions
+DD-CE	Reserved
+CF	Character Mapping
+D0-DC	Reserved
+DD	Unicode Equivalent
+DE	Reserved
+DF	Character Page Mapping
+F0-FE	Reserved
+FF	Request Report

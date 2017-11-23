@@ -248,7 +248,9 @@ F6-FF	Reserved
 1C5	AL Online Activity Browser
 1C6	AL Research/Search Browser
 1C7	AL Audio Player
-1C8-1FF	Reserved
+1C8	AL Message Status
+1C9	AL Contact Sync
+1CA-1FF	Reserved
 200	Generic GUIApplication Controls
 201	AC New
 202	AC Open
@@ -392,4 +394,31 @@ F6-FF	Reserved
 29B	AC Disribute Horizontally
 29C	AC Distribute Vertically
 29D	AC Next Keyboard Layout Select
-29E-FFFF	Reserved
+29D-29F	Reserved
+2A0	ACSoft Key Left
+2A1	ACSoft Key Right
+2A2-2AF	Reserved
+2B0	AC Idle Keep Alive
+2B1-4FF	Reserved
+500	Contact Edited
+501	Contact Added
+502	Contact Record Active
+503	Contact Index
+504	Contact Nickname
+505	Contact First Name
+506	Contact Last Name
+507	Contact Full Name
+508	Contact Phone Number Personal
+509	Contact Phone Number Business
+50A	Contact Phone Number Mobile
+50B	Contact Phone Number Pager
+50C	Contact Phone Number Fax
+50D	Contact Phone Number Other
+50E	Contact Email Personal
+50F	Contact Email Business
+510	Contact Email Other
+511	Contact Email Main
+512	Contact Speed Dial Number
+513	Contact Status Flag
+514	Contact Misc.
+515-FFFF	Reserved
