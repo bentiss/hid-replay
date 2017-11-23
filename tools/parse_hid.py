@@ -1,4 +1,4 @@
-#!/bin/env python
+#!/bin/env python3
 # -*- coding: utf-8 -*-
 #
 # Hid replay / parse_hid.py
@@ -26,10 +26,10 @@ import hid
 
 def get_usage(usage):
 	usage_page = usage >> 16
-	if hid.inv_usage_pages.has_key(usage_page) and \
+	if usage_page in hid.inv_usage_pages and \
 			hid.inv_usage_pages[usage_page] == "Button":
 		usage = "B" + str(usage & 0xFF)
-	elif hid.inv_usages.has_key(usage):
+	elif usage in hid.inv_usages:
 		usage = hid.inv_usages[usage]
 	else:
 		usage = "0x{:04x}".format(usage)
@@ -39,10 +39,10 @@ def get_value(report, start, size, twos_comp):
 	value = 0
 	start_bit = start
 	end_bit = start_bit + size
-	data = report[start_bit / 8 : end_bit / 8 + 1]
+	data = report[int(start_bit / 8) : int(end_bit / 8 + 1)]
 	if len(data) == 0:
 		return "<.>", end_bit
-	for d in xrange(len(data)):
+	for d in range(len(data)):
 		value |= data[d] << (8 * d)
 
 	bit_offset = start % 8
@@ -76,11 +76,11 @@ def get_report(time, report, rdesc, numbered):
 		values = []
 		usage_page_name = ''
 		usage_page = report_item["usage page"] >> 16
-		if hid.inv_usage_pages.has_key(usage_page):
+		if usage_page in hid.inv_usage_pages:
 			usage_page_name = hid.inv_usage_pages[usage_page]
 
 		# get the value and consumes bits
-		for i in xrange(report_item["count"]):
+		for i in range(report_item["count"]):
 			value, total_bit_offset = get_value(report, total_bit_offset, size, report_item["logical min"] < 0)
 			values.append(value)
 
@@ -140,22 +140,22 @@ def parse_event(line, rdesc, rdesc_dict, maybe_numbered):
 	report = [ int(item, 16) for item in report.split(' ')]
 	numbered = True
 	key = build_rkey(report[0], size)
-	if not rdesc_dict.has_key(key) and maybe_numbered:
+	if key not in rdesc_dict and maybe_numbered:
 		# the report is maybe not numbered
 		numbered = False
 		key = build_rkey(-1, size)
-	if not rdesc_dict.has_key(key):
+	if key not in rdesc_dict:
 		# mabe the report is larger than it should
 		key = None
 		current_size = 0
-		for k in rdesc_dict.keys():
+		for k in list(rdesc_dict.keys()):
 			id, id_size = k.split(":")
 			id = int(id)
 			id_size = int(id_size)
 			if id == report[0] and id_size < size and current_size < size:
 				current_size = id_size
 				key = k
-	if rdesc_dict.has_key(key):
+	if key in rdesc_dict:
 		return get_report(time, report, rdesc_dict[key], numbered)
 	return None
 
@@ -182,7 +182,7 @@ def parse_hid(f_in, f_out):
 			rdesc_object = parse_rdesc.parse_rdesc(line.lstrip("R: "), f_out)
 			rdesc = rdesc_object.reports
 			win8 = rdesc_object.win8
-			for k in rdesc.keys():
+			for k in list(rdesc.keys()):
 				if len(rdesc[k][0]):
 					if k == -1:
 						maybe_numbered = True

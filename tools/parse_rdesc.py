@@ -1,4 +1,4 @@
-#!/bin/env python
+#!/bin/env python3
 # -*- coding: utf-8 -*-
 #
 # Hid replay / parse_rdesc.py
@@ -49,9 +49,9 @@ class raw_item(object):
 		except:
 			error = "error while parsing {0:02x}".format(value)
 			if self.hid == 0:
-				raise ParseError, error
+				raise ParseError(error)
 			else:
-				raise KeyError, error
+				raise KeyError(error)
 		self.rsize = r & 0x3
 		if self.rsize == 3:
 			self.rsize = 4
@@ -61,7 +61,7 @@ class raw_item(object):
 	def feed(self, value):
 		"return True if the value was accepted by the item"
 		if self.index <= 0:
-			raise ParseError, "this item is already full"
+			raise ParseError("this item is already full")
 		self.raw_value.append(value)
 		self.value |= value << (self.rsize - self.index) * 8;
 		self.index -= 1
@@ -202,7 +202,7 @@ class ReportDescriptor(object):
 			elif value & (0x1 << 1): # Variable item
 				if self.usage_min and self.usage_max:
 					usage = self.usage_min
-					for i in xrange(self.count):
+					for i in range(self.count):
 						item = item.copy()
 						item["count"] = 1
 						item["usage"] = usage
@@ -211,7 +211,7 @@ class ReportDescriptor(object):
 						if usage < self.usage_max:
 							usage += 1
 				else:
-					for i in xrange(self.count):
+					for i in range(self.count):
 						usage_ = 0
 						if i < len(self.usage):
 							usage_ = self.usage[i]
@@ -224,7 +224,7 @@ class ReportDescriptor(object):
 						self.r_size += self.item_size
 			else: # Array item
 				if self.usage_min and self.usage_max:
-					self.usage = range(self.usage_min, self.usage_max + 1)
+					self.usage = list(range(self.usage_min, self.usage_max + 1))
 				item["usages"] = self.usage
 				self.report.append(item)
 				self.r_size += self.item_size * self.count
@@ -277,7 +277,7 @@ def dump_rdesc(rdesc_item, indent, dump_file):
 	dump_file.write("            Item({0:6s}): {1}, data={2}\n".format(hid_type[item], item, data))
 	if item == "Usage":
 		usage = up | value
-		if usage in inv_usages.keys():
+		if usage in list(inv_usages.keys()):
 			dump_file.write("                 " + inv_usages[usage] + "\n")
 
 def get_raw_values(rdesc_item):
@@ -309,13 +309,13 @@ def get_human_descr(rdesc_item, indent):
 	elif item == "End Collection":
 		indent -= 1
 	elif item == "Usage Page":
-		if inv_usage_pages.has_key(value):
+		if value in inv_usage_pages:
 			descr +=  " (" + inv_usage_pages[value] + ')'
 		else:
 			descr +=  " (Vendor Usage Page 0x{:02x})".format(value)
 	elif item == "Usage":
 		usage = value | up
-		if inv_usages.has_key(usage):
+		if usage in inv_usages:
 			descr +=  " (" + inv_usages[usage] + ')'
 		elif up == usage_pages['Sensor'] << 16:
 			mod = (usage & 0xF000) >> 8
@@ -369,7 +369,7 @@ def get_human_descr(rdesc_item, indent):
 		system = value & 0xf
 
 		descr +=  " ("
-		for i in xrange(len(units), 0, -1):
+		for i in range(len(units), 0, -1):
 			v = (value >> i*4) & 0xf
 			v = twos_comp(v, 4)
 			if v:
@@ -394,12 +394,12 @@ def dump_rdesc_kernel(rdesc_item, indent, dump_file):
 	offset = rdesc_item.index_in_report - 1
 	item = rdesc_item.item
 	line = get_raw_values(rdesc_item)
-	line += "\t" * ((40 - len(line)) / 8)
+	line += "\t" * (int((40 - len(line)) / 8))
 
 	descr, indent = get_human_descr(rdesc_item, indent)
 	eff_indent = indent
 
-	descr += "\t" * ((52 - len(descr)) / 8)
+	descr += "\t" * (int((52 - len(descr)) / 8))
 	#dump_file.write(line + "/* " + descr + " " + str(offset) + " */\n")
 	dump_file.write("\t%s/* %s*/\n"%(line, descr))
 	return indent
@@ -433,7 +433,7 @@ def parse_rdesc(rdesc_str, dump_file = None):
 	indent = 0
 
 	rdesc_object = ReportDescriptor()
-	for i in xrange(1,len(rdesc)):
+	for i in range(1,len(rdesc)):
 		v = rdesc[i]
 		if i == len(rdesc) - 1 and v == 0:
 			# some device present a trailing 0, skipping it

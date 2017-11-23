@@ -1,4 +1,4 @@
-#!/bin/env python
+#!/bin/env python3
 # -*- coding: utf-8 -*-
 #
 # Hid replay / parse_hid.py: generate a table of hid usages and definitions
@@ -42,7 +42,7 @@ def parse_usages(usage_list):
 		if 'reserved' in name.lower():
 			continue
 		if '-' in usage:
-			print line
+			print(line)
 			continue
 		usages[int(usage, 16)] = name
 	return idx, page_name, usages
@@ -51,7 +51,11 @@ def parse():
 	usages = {}
 	for filename in os.listdir(DATA_DIR):
 		if filename.endswith('.hut'):
-			with open(os.path.join(DATA_DIR, filename)) as f:
-				idx, name, usages_list = parse_usages(f.readlines())
-				usages[idx] = (name, filename, usages_list)
+			with open(os.path.join(DATA_DIR, filename), 'r') as f:
+				try:
+					idx, name, usages_list = parse_usages(f.readlines())
+					usages[idx] = (name, filename, usages_list)
+				except UnicodeDecodeError:
+					print(filename)
+					raise
 	return usages

@@ -1,4 +1,4 @@
-#!/bin/env python
+#!/bin/env python3
 # -*- coding: utf-8 -*-
 #
 # Hid replay / hid.py: table of hid usages and definitions
@@ -89,8 +89,8 @@ sensor_mods = {
 
 inv_hid = {}
 hid_type = {}
-for type, items in hid_items.iteritems():
-	for k, v in items.iteritems():
+for type, items in list(hid_items.items()):
+	for k, v in list(items.items()):
 		inv_hid[v] = k
 		hid_type[k] = type
 
@@ -99,10 +99,10 @@ usages = parse_hut.parse()
 usage_pages = {}
 inv_usage_pages = {}
 inv_usages = {}
-for usage, (name, filename, usage_list) in usages.iteritems():
+for usage, (name, filename, usage_list) in usages.items():
 	inv_usage_pages[usage] = name
 	usage_pages[name] = usage
-	for k, v in usage_list.iteritems():
+	for k, v in list(usage_list.items()):
 		inv_usages[(usage << 16) | k] = v
 
-inv_collections = dict([(v, k) for k, v in collections.iteritems()])
+inv_collections = dict([(v, k) for k, v in list(collections.items())])
