@@ -52,7 +52,7 @@ class raw_item(object):
         try:
             self.item = hid.inv_hid[self.hid]
         except:
-            error = "error while parsing {0:02x}".format(value)
+            error = f'error while parsing {value:02x}'
             if self.hid == 0:
                 raise ParseError(error)
             else:
@@ -94,11 +94,11 @@ class raw_item(object):
         return 1 + len(self.raw_value)
 
     def __repr__(self):
-        data = ["{0:02x}".format(i) for i in self.raw_value]
-        r = "{0:02x}".format(self.r)
+        data = [f'{i:02x}' for i in self.raw_value]
+        r = f'{self.r:02x}'
         if not len(data):
             return r
-        return r + " " + " ".join(data)
+        return f'{r} {" ".join(data)}'
 
 
 class ReportDescriptor(object):
@@ -281,20 +281,19 @@ def dump_rdesc(rdesc_item, indent, dump_file):
     if item != "End Collection":
         data = " ["
         for v in rdesc_item.raw_value:
-            data += " 0x{:02x}".format(v & 0xff)
-        data += " ] {}".format(value)
-    dump_file.write("            Item({0:6s}): {1}, data={2}\n".format(
-                    hid.hid_type[item], item, data))
+            data += f' 0x{v & 0xff:02x}'
+        data += f' ] {value}'
+    dump_file.write(f'            Item({hid.hid_type[item]:6s}): {item}, data={data}\n')
     if item == "Usage":
         usage = up | value
         if usage in list(hid.inv_usages.keys()):
-            dump_file.write("                 " + hid.inv_usages[usage] + "\n")
+            dump_file.write(f'                 {hid.inv_usages[usage]}\n')
 
 
 def get_raw_values(rdesc_item):
     data = str(rdesc_item)
     # prefix each individual value by "0x" and insert "," in between
-    data = "0x" + data.replace(" ", ", 0x") + ","
+    data = f'0x{data.replace(" ", ", 0x")},'
     return data
 
 
@@ -313,31 +312,31 @@ def get_human_descr(rdesc_item, indent):
                 "Report Size",
                 "Report Count",
                 "Unit Exponent"):
-        descr += " (" + str(value) + ')'
+        descr += f' ({str(value)})'
     elif item == "Collection":
-        descr += " (" + hid.inv_collections[value].capitalize() + ')'
+        descr += f' ({hid.inv_collections[value].capitalize()})'
         indent += 1
     elif item == "End Collection":
         indent -= 1
     elif item == "Usage Page":
         if value in hid.inv_usage_pages:
-            descr += " (" + hid.inv_usage_pages[value] + ')'
+            descr += f' ({hid.inv_usage_pages[value]})'
         else:
-            descr += " (Vendor Usage Page 0x{:02x})".format(value)
+            descr += f' (Vendor Usage Page 0x{value:02x})'
     elif item == "Usage":
         usage = value | up
         if usage in hid.inv_usages:
-            descr += " (" + hid.inv_usages[usage] + ')'
+            descr += f' ({hid.inv_usages[usage]})'
         elif up == hid.usage_pages['Sensor'] << 16:
             mod = (usage & 0xF000) >> 8
             usage &= ~0xF000
             mod_descr = hid.sensor_mods[mod]
             try:
-                descr += " (" + hid.inv_usages[usage] + ' | ' + mod_descr + ')'
+                descr += f' ({hid.inv_usages[usage]}  | {mod_descr})'
             except:
-                descr += " (Unknown Usage 0x{:02x})".format(value)
+                descr += f' (Unknown Usage 0x{value:02x})'
         else:
-            descr += " (Vendor Usage 0x{:02x})".format(value)
+            descr += f' (Vendor Usage 0x{value:02x})'
     elif item == "Input" \
             or item == "Output" \
             or item == "Feature":
@@ -412,8 +411,8 @@ def dump_rdesc_kernel(rdesc_item, indent, dump_file):
     descr, indent = get_human_descr(rdesc_item, indent)
 
     descr += "\t" * (int((52 - len(descr)) / 8))
-    # dump_file.write(line + "/* " + descr + " " + str(offset) + " */\n")
-    dump_file.write("\t%s/* %s*/\n" % (line, descr))
+    # dump_file.write(f'{line}/* {descr} {str(offset)} */\n')
+    dump_file.write(f'\t{line}/* {descr}*/\n')
     return indent
 
 
@@ -428,7 +427,7 @@ def dump_rdesc_array(rdesc_item, indent, dump_file):
     descr, indent = get_human_descr(rdesc_item, indent)
 
     descr += " " * (35 - len(descr))
-    dump_file.write(line + " // " + descr + " " + str(offset) + "\n")
+    dump_file.write(f'{line} // {descr} {str(offset)}\n')
     return indent
 
 

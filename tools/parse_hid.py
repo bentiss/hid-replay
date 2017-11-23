@@ -29,11 +29,11 @@ def get_usage(usage):
     usage_page = usage >> 16
     if usage_page in hid.inv_usage_pages and \
             hid.inv_usage_pages[usage_page] == "Button":
-        usage = "B" + str(usage & 0xFF)
+        usage = f'B{str(usage & 0xFF)}'
     elif usage in hid.inv_usages:
         usage = hid.inv_usages[usage]
     else:
-        usage = "0x{:04x}".format(usage)
+        usage = f'0x{usage:04x}'
     return usage
 
 
@@ -62,11 +62,11 @@ def get_report(time, report, rdesc, numbered):
     """
     total_bit_offset = 0
 
-    output = "{:>10s} ".format(time)
+    output = f'{time:>10s} '
     sep = ''
     report_descriptor = rdesc
     if numbered:
-        output += "ReportID: %d " % report[0]
+        output += f'ReportID: {report[0]} '
         sep = '/'
         # first byte is report ID, actual data starts at 8
         total_bit_offset = 8
@@ -90,14 +90,14 @@ def get_report(time, report, rdesc, numbered):
             values.append(value)
 
         if const:
-            output += "%s # " % sep
+            output += f'{sep} # '
         elif not array:
             value_format = "{:d}"
             if size > 1:
-                value_format = "{:" + str(len(str(1 << size)) + 1) + "d}"
+                value_format = f'{{:{str(len(str(1 << size)) + 1)}d}}'
             if isinstance(values[0], str):
                 value_format = "{}"
-            usage = " " + get_usage(report_item["usage"]) + ':'
+            usage = f' {get_usage(report_item["usage"])}:'
 
             # if we don't get a key error this is a duplicate in
             # this report descriptor and we need a linebreak
@@ -115,7 +115,7 @@ def get_report(time, report, rdesc, numbered):
                prev["usage"] == report_item["usage"]):
                 sep = ","
                 usage = ""
-            output += sep + usage + " " + value_format.format(values[0]) + " "
+            output += f'{sep}{usage} {value_format.format(values[0])} '
         else:
             if not usage_page_name:
                 usage_page_name = "Array"
@@ -129,7 +129,7 @@ def get_report(time, report, rdesc, numbered):
                     if isinstance(values[0], str):
                         usage = v
                     else:
-                        usage = "{:02x}".format(v)
+                        usage = f'{v:02x}'
                     if ('vendor' not in usage_page_name.lower() and
                        v > 0 and
                        v < len(report_item["usages"])):
@@ -137,14 +137,14 @@ def get_report(time, report, rdesc, numbered):
                         if "no event indicated" in usage.lower():
                             usage = ''
                     usages.append(usage)
-            output += sep + usage_page_name + " [" + ", ".join(usages) + "] "
+            output += f'{sep}{usage_page_name} [{", ".join(usages)}] '
         sep = '|'
         prev = report_item
     return output
 
 
 def build_rkey(reportID, length):
-    return "{0}:{1}".format(reportID, length)
+    return f'{reportID}:{length}'
 
 
 def parse_event(line, rdesc, rdesc_dict, maybe_numbered):
