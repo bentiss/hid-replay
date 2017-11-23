@@ -3,8 +3,8 @@
 #
 # Hid replay / parse_hid.py
 #
-# Copyright (c) 2012-2013 Benjamin Tissoires <benjamin.tissoires@gmail.com>
-# Copyright (c) 2012-2013 Red Hat, Inc.
+# Copyright (c) 2012-2017 Benjamin Tissoires <benjamin.tissoires@gmail.com>
+# Copyright (c) 2012-2017 Red Hat, Inc.
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
