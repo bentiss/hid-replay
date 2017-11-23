@@ -36,7 +36,7 @@ def parse_usages(usage_list):
             continue
         if line.startswith('('):
             idx, page_name = line.split('\t')
-            idx = int(idx.lstrip('(').rstrip(')'))
+            idx = int(idx.lstrip('(').rstrip(')'), 16)
             continue
         usage, name = line.split('\t')
         if 'reserved' in name.lower():
