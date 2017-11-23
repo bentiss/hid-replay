@@ -35,7 +35,9 @@
 64	Broadcast Mode
 65	Snapshot
 66	Still
-67-6C	Reserved
+67	Picture-in-Picture Toggle
+68	Picture-in-Picture Swap
+69-6C	Reserved
 6D	Aspect
 6E	3D Mode Select
 6F	Display Brightness Increment
