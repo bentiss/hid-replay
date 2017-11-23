@@ -1,6 +1,7 @@
 (06)	Generic Device Controls
 00	Unidentified
-01-1F	Reserved
+01	Background Controls
+02-1F	Reserved
 20	Battery Strength
 21	Wireless Channel
 22	Wireless ID
