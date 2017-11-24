@@ -78,4 +78,19 @@
 84	Err Full Trans Features Unavail
 85	Err Charge Low
 86-8F	Reserved for future errors
-90-FFFF	Reserved
+90	Transducer Software Info.
+91	Transducer Vendor ID
+92	Transducer Product ID
+93	Device Supported Protocols
+94	Transducer Supported Protocols
+95	No Protocol
+96	Wacom AES Protocol
+97	USI Protocol
+98‐9F	Reserved for future transducer protocols
+A0	Supported Report Rates
+A1	Report Rate
+A2	Transducer Connected
+A3	Switch Disabled
+A4	Switch Unimplemented
+A5	Transducer Switches
+A6‐FFFF	Reserved

@@ -50,7 +50,10 @@
 73	Display Set Brightness to Minimum
 74	Display Set Brightness to Maximum
 75	Display Set Auto Brightness
-76-7F	Reserved
+76	Camera Access Enabled
+77	Camera Access Disabled
+78	Camera Access Toggle
+79-7F	Reserved
 80	Selection
 81	Assign Selection
 82	Mode Step
@@ -121,7 +124,15 @@ CC	Stop/Eject
 CD	Play/Pause
 CE	Play/Skip
 CF	Voice Command
-D0-DF	Reserved
+D0	Invoke Capture Interface
+D1	Start or Stop Game Recording
+D2	Historical Game Capture
+D3	Capture Game Screenshot
+D4	Show or Hide Recording Indicator
+D5	Start or Stop Microphone Capture
+D6	Start or Stop Camera Capture
+D7	Start or Stop Game Broadcast
+D8-DF	Reserved
 E0	Volume
 E1	Balance
 E2	Mute
@@ -399,7 +410,7 @@ F6-FF	Reserved
 29B	AC Disribute Horizontally
 29C	AC Distribute Vertically
 29D	AC Next Keyboard Layout Select
-29D-29F	Reserved
+29E-29F	Reserved
 2A0	ACSoft Key Left
 2A1	ACSoft Key Right
 2A2-2AF	Reserved

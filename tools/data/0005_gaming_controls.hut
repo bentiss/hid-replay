@@ -30,4 +30,5 @@
 37	Gamepad Fire/Jump
 38	Reserved
 39	Gamepad Trigger
-3A-FFFF	Reserved
+3A	Form-fitting gamepad
+3B-FFFF	Reserved

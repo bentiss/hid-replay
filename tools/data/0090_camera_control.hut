@@ -1,3 +1,5 @@
 (90)	Camera Control
 00	Undefined
-01-FFFF	Reserved
+01-1F	Reserved
+20	Camera Auto-focus
+21	Camera Shutter

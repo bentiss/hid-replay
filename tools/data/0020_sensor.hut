@@ -6,90 +6,119 @@
 11	Biometric Human Presence
 12	Biometric Human Proximity
 13	Biometric Human Touch
-14-1F	Reserved
+14	Biometric: Blood Pressure
+15	Biometric: Body Temperature
+16	Biometric: Heart Rate
+17	Biometric: Heart Rate Variability
+18	Biometric: Peripheral Oxygen Saturation
+19	Biometric: Respiratory Rate
+1A-1F	Biometric: Reserved
 20	Electrical
-21	Electrical Capacitance
-22	Electrical Current
-23	Electrical Power
-24	Electrical Inductance
-25	Electrical Resistance
-26	Electrical Voltage
-27	Electrical Potentiometer
-28	Electrical Frequency
-29	Electrical Period
-2A-2F	Reserved
+21	Electrical: Capacitance
+22	Electrical: Current
+23	Electrical: Power
+24	Electrical: Inductance
+25	Electrical: Resistance
+26	Electrical: Voltage
+27	Electrical: Potentiometer
+28	Electrical: Frequency
+29	Electrical: Period
+2A-2F	Electrical: Reserved
 30	Environmental
-31	Environmental Atmospheric Pressure
-32	Environmental Humidity
-33	Environmental Temperature
-34	Environmental Wind Direction
-35	Environmental Wind Speed
-36-3F	Reserved
+31	Environmental: Atmospheric Pressure
+32	Environmental: Humidity
+33	Environmental: Temperature
+34	Environmental: Wind Direction
+35	Environmental: Wind Speed
+36	Environmental: Air Quality
+37	Environmental: Heat Index
+38	Environmental: Surface Temperature
+39	Environmental: Volatile Organic Compounds
+3A-3F	Environmental: Reserved
 40	Light
-41	Light Ambient Light
-42	Light Consumer Infrared
-43-4F	Reserved
+41	Light: Ambient Light
+42	Light: Consumer Infrared
+43	Light: Infrared Light
+44	Light: Visible Light
+45	Light: Ultraviolet Light
+46-4F	Light: Reserved
 50	Location
-51	Location Broadcast
-52	Location Dead Reckoning
-53	Location GPS
-54	Location Lookup
-55	Location Other
-56	Location Static
-57	Location Triangulation
-58-5F	Reserved
+51	Location: Broadcast
+52	Location: Dead Reckoning
+53	Location: GPS
+54	Location: Lookup
+55	Location: Other
+56	Location: Static
+57	Location: Triangulation
+58-5F	Location: Reserved
 60	Mechanical
-61	Mechanical Boolean Switch
-62	Mechanical Boolean Switch Array
-63	Mechanical Multivalue Switch
-64	Mechanical Force
-65	Mechanical Pressure
-66	Mechanical Strain
-67	Mechanical Weight
-68	Mechanical Haptic Vibrator
-69	Mechanical Hall Effect Switch
-6A-6F	Reserved
+61	Mechanical: Boolean Switch
+62	Mechanical: Boolean Switch Array
+63	Mechanical: Multivalue Switch
+64	Mechanical: Force
+65	Mechanical: Pressure
+66	Mechanical: Strain
+67	Mechanical: Weight
+68	Mechanical: Haptic Vibrator
+69	Mechanical: Hall Effect Switch
+6A-6F	Mechanical: Reserved
 70	Motion
-71	Motion Accelerometer 1D
-72	Motion Accelerometer 2D
-73	Motion Accelerometer 3D
-74	Motion Gyrometer 1D
-75	Motion Gyrometer 2D
-76	Motion Gyrometer 3D
-77	Motion Motion Detector
-78	Motion Speedometer
-79	Motion Accelerometer
-7A	Motion Gyrometer
-7B-7F	Reserved
+71	Motion: Accelerometer 1D
+72	Motion: Accelerometer 2D
+73	Motion: Accelerometer 3D
+74	Motion: Gyrometer 1D
+75	Motion: Gyrometer 2D
+76	Motion: Gyrometer 3D
+77	Motion: Motion Detector
+78	Motion: Speedometer
+79	Motion: Accelerometer
+7A	Motion: Gyrometer
+7B	Motion: Gravity Vector
+7C	Motion: Linear Accelerometer
+7D-7F	Motion: Reserved
 80	Orientation
-81	Orientation Compass 1D
-82	Orientation Compass 2D
-83	Orientation Compass 3D
-84	Orientation Inclinometer 1D
-85	Orientation Inclinometer 2D
-86	Orientation Inclinometer 3D
-87	Orientation Distance 1D
-88	Orientation Distance 2D
-89	Orientation Distance 3D
-8A	Orientation Device Orientation
-8B	Orientation Compass
-8C	Orientation Inclinometer
-8D	Orientation Distance
-8E-8F	Reserved
+81	Orientation: Compass 1D
+82	Orientation: Compass 2D
+83	Orientation: Compass 3D
+84	Orientation: Inclinometer 1D
+85	Orientation: Inclinometer 2D
+86	Orientation: Inclinometer 3D
+87	Orientation: Distance 1D
+88	Orientation: Distance 2D
+89	Orientation: Distance 3D
+8A	Orientation: Device Orientation
+8B	Orientation: Compass
+8C	Orientation: Inclinometer
+8D	Orientation: Distance
+8E	Orientation: Relative Orientation
+8F	Orientation: Simple Orientation
 90	Scanner
-91	Scanner Barcode
-92	Scanner RFID
-93	Scanner NFC
-94-9F	Reserved
+91	Scanner: Barcode
+92	Scanner: RFID
+93	Scanner: NFC
+94-9F	Scanner: Reserved
 A0	Time
-A1	Time Alarm Timer
-A2	Time Real Time Clock
-A3-DF	Reserved
+A1	Time: Alarm Timer
+A2	Time: Real Time Clock
+A3-AF	Time: Reserved
+B0	Personal Activity
+B1	Personal Activity: Activity Detection
+B2	Personal Activity: Device Position
+B3	Personal Activity: Pedometer
+B4	Personal Activity: Step Detection
+B5-BF	Personal Activity: Reserved
+C0	Orientation Extended
+C1	Orientation Extended: Geomagnetic Orientation
+C2	Orientation Extended: Magnetometer
+C3-CF	Orientation Extended: Reserved
+D0-DF	Reserved
 E0	Other
-E1	Other Custom
-E2	Other Generic
-E3	Other Generic Enumerator
-E4-0199	Reserved
+E1	Other: Custom
+E2	Other: Generic
+E3	Other: Generic Enumerator
+E4-EF	Other: Reserved
+F0-FF	Reserved for Vendors/OEMs
+0100-01FF	Reserved
 0200	Event
 0201	Event: Sensor State
 0202	Event: Sensor Event
@@ -117,8 +146,11 @@ E4-0199	Reserved
 0314	Property: Maximum
 0315	Property: Minimum
 0316	Property: Reporting State
-031A-03FF	Reserved
-
+031A	Property: Maximum FIFO Events
+031B	Property: Report Latency
+031C	Property: Flush FIFO Events
+031D	Property: Maximum Power Consumption
+031E-03FF	Property: Reserved
 0400	Data Field: Location
 0401	Data Field: Location Reserved
 0402	Data Field: Altitude Antenna Sea Level
@@ -170,7 +202,10 @@ E4-0199	Reserved
 0434	Data Field: Temperature
 0435	Data Field: Wind Direction
 0436	Data Field: Wind Speed
-0437-043F	Data Field: Environmental Reserved
+0437	Data Field: Air Quality Index
+0438	Data Field: Equivalent CO2
+0439	Data Field: Volatile Organic Compound Concentration
+043A-043F	Data Field: Environmental Reserved
 0440	Property: Environmental
 0441	Property: Reference Pressure
 0442-044F	Property: Environmental Reserved
@@ -216,7 +251,8 @@ E4-0199	Reserved
 0486	Data Field: Magnetic Flux Y Axis
 0487	Data Field: Magnetic Flux Z Axis
 0488	Data Field: Magnetometer Accuracy
-0489-048F	Data Field: Orientation Reserved
+0489	Data Field: Simple Orientation Direction
+048A-048F	Data Field: Orientation Reserved
 0490	Data Field: Mechanical
 0491	Data Field: Boolean Switch State
 0492	Data Field: Boolean Switch Array States
@@ -237,7 +273,15 @@ E4-0199	Reserved
 04B2	Data Field: Human Proximity Range
 04B3	Data Field: Human Proximity Out of Range
 04B4	Data Field: Human Touch State
-04B5-04CF	Data Field: Biometric Reserved
+04B5	Data Field: Blood Pressure
+04B6	Data Field: Blood Pressure Diastolic
+04B7	Data Field: Blood Pressure Systolic
+04B8	Data Field: Heart Rate
+04B9	Data Field: Resting Heart Rate
+04BA	Data Field: Heartbeat Interval
+04BB	Data Field: Respiratory Rate
+04BC	Data Field: SpO2
+04BD-04CF	Data Field: Biometric Reserved
 04D0	Data Field: Light
 04D1	Data Field: Illuminance
 04D2	Data Field: Color Temperature
@@ -245,7 +289,14 @@ E4-0199	Reserved
 04D4	Data Field: Chromaticity X
 04D5	Data Field: Chromaticity Y
 04D6	Data Field: Consumer IR Sentence Receive
-04D7-04DF	Data Field: Light Reserved
+04D7	Data Field: Infrared Light
+04D8	Data Field: Red Light
+04D9	Data Field: Green Light
+04DA	Data Field: Blue Light
+04DB	Data Field: Ultraviolet A Light
+04DC	Data Field: Ultraviolet B Light
+04DD	Data Field: Ultraviolet Index
+04DE-04DF	Data Field: Light Reserved
 04E0	Property: Light
 04E1	Property: Consumer IR Sentence Send
 04E2-04EF	Property: Light Reserved
@@ -279,7 +330,8 @@ E4-0199	Reserved
 0528	Data Field: Millisecond
 0529	Data Field: Timestamp
 052A	Data Field: Julian Day of Year
-052A-052F	Data Field: Time Reserved
+052B	Data Field: Time Since System Boot
+052C-052F	Data Field: Time Reserved
 0530	Property: Time
 0531	Property: Time Zone Offset from UTC
 0532	Property: Time Zone Name
@@ -297,7 +349,28 @@ E4-0199	Reserved
 0547	Data Field: Custom Value 4
 0548	Data Field: Custom Value 5
 0549	Data Field: Custom Value 6
-054A-055F	Data Field: Custom Reserved
+054A	Data Field: Custom Value 7
+054B	Data Field: Custom Value 8
+054C	Data Field: Custom Value 9
+054D	Data Field: Custom Value 10
+054E	Data Field: Custom Value 11
+054F	Data Field: Custom Value 12
+0550	Data Field: Custom Value 13
+0551	Data Field: Custom Value 14
+0552	Data Field: Custom Value 15
+0553	Data Field: Custom Value 16
+0554	Data Field: Custom Value 17
+0555	Data Field: Custom Value 18
+0556	Data Field: Custom Value 19
+0557	Data Field: Custom Value 20
+0558	Data Field: Custom Value 21
+0559	Data Field: Custom Value 22
+055A	Data Field: Custom Value 23
+055B	Data Field: Custom Value 24
+055C	Data Field: Custom Value 25
+055D	Data Field: Custom Value 26
+055E	Data Field: Custom Value 27
+055F	Data Field: Custom Value 28
 0560	Data Field: Generic
 0561	Data Field: Generic GUID or PROPERTYKEY
 0562	Data Field: Generic Category GUID
@@ -326,7 +399,26 @@ E4-0199	Reserved
 0581	Property: Enumerator Table Row Index
 0582	Property: Enumerator Table Row Count
 0583-058F	Property: Generic Reserved
-0590-07FF	Reserved for future use as Data Fields and Properties
+0590	Data Field: Personal Activity
+0591	Data Field: Activity Type
+0592	Data Field: Activity State
+0593	Data Field: Device Position
+0594	Data Field: Step Count
+0595	Data Field: Step Count Reset
+0596	Data Field: Step Duration
+0597	Data Field: Step Type
+0598-059F	Data Field: Personal Activity Reserved
+05A0	Property: Minimum Activity Detection Interval
+05A1	Property: Supported Activity Types
+05A2	Property: Subscribed Activity Types
+05A3	Property: Supported Step Types
+05A4	Property: Subscribed Step Types
+05A5	Property: Floor Height
+05A6-05AF	Property: Personal Activity Reserved
+05B0	Data Field: Custom Type ID
+05B1-05BF	Data Field: Custom Reserved
+05C0-07FF	Reserved for future use as Sensor Types, Data Fields and Properties
+
 0800-0FF	Reserved for use as Selection Values
 
 0800	Sensor State: Undefined
@@ -421,6 +513,13 @@ E4-0199	Reserved
 08E1	Magnetometer Accuracy: Medium
 08E2	Magnetometer Accuracy: High
 
+08F0	Simple Orientation Direction: Not Rotated
+08F1	Simple Orientation Direction: Rotated 90 Degrees
+08F2	Simple Orientation Direction:  Rotated 180 Degrees
+08F3	Simple Orientation Direction:  Rotated 270 Degrees
+08F4	Simple Orientation Direction: Face Up
+08F5	Simple Orientation Direction: Face Down
+
 0900	VT_NULL: Empty
 0901	VT_BOOL: Boolean
 0902	VT_UI1: Byte
@@ -469,6 +568,14 @@ E4-0199	Reserved
 092D	VT_F32ED: HID 32-bit Float with Unit Exponent D
 092E	VT_F32EE: HID 32-bit Float with Unit Exponent E
 092F	VT_F32EF: HID 32-bit Float with Unit Exponent F
+0930	Activity Type: Unknown
+0931	Activity Type: Stationary
+0932	Activity Type: Fidgeting
+0933	Activity Type: Walking
+0934	Activity Type: Running
+0935	Activity Type: In Vehicle
+0936	Activity Type: Biking
+0937	Activity Type: Idle
 
 
 0940	Unit: Not Specified
@@ -502,6 +609,9 @@ E4-0199	Reserved
 095C	Unit: Bytes
 095D	Unit: Milligauss
 095E	Unit: Bits
+0960	Activity State: No State Change
+0961	Activity State: Start Activity
+0962	Activity State: End Activity
 0970	Exponent 0: 1
 0971	Exponent 1: 10
 0972	Exponent 2: 100
@@ -518,6 +628,13 @@ E4-0199	Reserved
 097D	Exponent D: 0.001
 097E	Exponent E: 0.01
 097F	Exponent F: 0.1
+0980	Device Position: Unknown
+0981	Device Position: Unchanged
+0982	Device Position: On Desk
+0983	Device Position: In Hand
+0984	Device Position: Moving in Bag
+0985	Device Position: Stationary in Bag
 
+09A0-09FF	Reserved for use as Selection Values
 1000-EFFF	Reserved for use as “Data Fields with Modifiers”
 F000-FFFF	Reserved for Vendors/OEMs
