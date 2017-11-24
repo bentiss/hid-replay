@@ -243,6 +243,7 @@ class ReportDescriptor(object):
         elif item == "Feature":
             if len(self.usage) > 0 and self.usage[-1] == 0xff0000c5:
                 self.win8 = True
+            self.usage = []
 
     def dump(self, dump_file):
         indent = 0
