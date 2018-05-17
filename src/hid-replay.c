@@ -478,17 +478,22 @@ static int hid_replay_setup_pollfd(struct hid_replay_devices_list *devices)
 
 static int hid_replay_wait_opened(struct hid_replay_devices_list *devices)
 {
+	int n = devices->count;
 	int ret;
 	struct uhid_event event;
 
 	do {
-		ret = hid_replay_get_one_event(devices, &event, -1);
+		ret = hid_replay_get_one_event(devices, &event, 5000);
 		if (ret == 1) {
 			if (event.type == UHID_OPEN) {
-				return 0;
+				n--;
 			}
 		}
-	} while (ret == 1);
+		if (ret == 0) {
+			fprintf(stderr, "Timed out with %d device(s) still unavailable.\n", n);
+			return -1;
+		}
+	} while (n);
 
 	return 0;
 }
@@ -604,7 +609,8 @@ int main(int argc, char **argv)
 	if (error)
 		return error;
 
-	hid_replay_wait_opened(devices);
+	if (hid_replay_wait_opened(devices))
+		return EXIT_FAILURE;
 
 	if (sleep_time)
 		hid_replay_sleep(devices, sleep_time * 1000000);
