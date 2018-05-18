@@ -566,9 +566,6 @@ int main(int argc, char **argv)
 	memset(&event, 0, sizeof(event));
 	memset(&dev, 0, sizeof(dev));
 
-	if (try_open_uhid())
-		return EXIT_FAILURE;
-
 	while (1) {
 		int option_index = 0;
 		int c = getopt_long(argc, argv, "hi1s:", long_options, &option_index);
@@ -599,6 +596,9 @@ int main(int argc, char **argv)
 		fprintf(stderr, "Failed to open %s: %s\n", hid_file, strerror(errno));
 		return usage();
 	}
+
+	if (try_open_uhid())
+		return EXIT_FAILURE;
 
 	devices = hid_replay_create_devices(fp);
 
