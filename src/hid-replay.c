@@ -183,14 +183,11 @@ static int hid_replay_get_one_event(struct hid_replay_devices_list *devices,
 	do {
 		ret = poll(devices->fds, devices->count, timeout);
 
-		if (ret > 0 && devices->fds[0].revents & POLLIN)
-			ret--; /* ignore stdin inputs */
-
 		if (ret == 0)
 			return 0; /* timeout */
 
 		if (ret > 0) {
-			for (i=1; i < devices->count; i++) {
+			for (i=0; i < devices->count; i++) {
 				if (devices->fds[i].revents & POLLIN) {
 					read(devices->fds[i].fd, event, sizeof(*event));
 					hid_replay_incoming_event(devices->fds[i].fd,
@@ -456,7 +453,7 @@ static int hid_replay_setup_pollfd(struct hid_replay_devices_list *devices)
 {
 	struct pollfd *fds;
 	struct hid_replay_device *device;
-	int count = 1; /* stdin */
+	int count = 0;
 
 	list_for_each(&devices->devices, device, list)
 		++count;
@@ -465,9 +462,7 @@ static int hid_replay_setup_pollfd(struct hid_replay_devices_list *devices)
 	if (!fds)
 		return -ENOMEM;
 
-	fds[0].fd = STDIN_FILENO;
-	fds[0].events = POLLIN;
-	count = 1;
+	count = 0;
 
 	list_for_each(&devices->devices, device, list) {
 		fds[count].fd = device->fuhid;
@@ -619,10 +614,9 @@ int main(int argc, char **argv)
 	stop = 0;
 	while (!stop) {
 		if (mode == MODE_INTERACTIVE) {
+			do { }
+			while (hid_replay_get_one_event(devices, &event, 100) > 0);
 			printf("Hit enter to (re)start replaying the events\n");
-			do {
-				hid_replay_get_one_event(devices, &event, -1);
-			} while (!devices->fds[0].revents & POLLIN);
 			fgets (line, sizeof(line), stdin);
 		} else
 			stop = 1;
