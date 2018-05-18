@@ -619,7 +619,7 @@ int main(int argc, char **argv)
 	stop = 0;
 	while (!stop) {
 		if (mode == MODE_INTERACTIVE) {
-			printf("Hit enter (re)start replaying the events\n");
+			printf("Hit enter to (re)start replaying the events\n");
 			do {
 				hid_replay_get_one_event(devices, &event, -1);
 			} while (!devices->fds[0].revents & POLLIN);
