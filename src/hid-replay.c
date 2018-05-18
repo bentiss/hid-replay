@@ -218,7 +218,7 @@ static void hid_replay_sleep(struct hid_replay_devices_list *devices,
 
 	gettimeofday(&end_time, NULL);
 
-	end_time.tv_usec += timeout_usec;
+	end_time.tv_usec += timeout_usec % 1000000L;
 	end_time.tv_sec += timeout_usec / 1000000L;
 
 	/* we need to flush the incoming events until timeout is done */
