@@ -346,6 +346,9 @@ static int hid_replay_parse_header(FILE *fp, struct uhid_create_req *dev)
 
 	do {
 		size = getline(&buf, &n, fp);
+		if (size == -1)
+			continue;
+
 		switch (buf[0]) {
 			case '#':
 				/* comments, just skip the line */

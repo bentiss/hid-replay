@@ -255,7 +255,7 @@ static char* find_hid_dbg(struct hidraw_devinfo *info, struct hidraw_report_desc
 
 		/* Get Report Descriptor */
 		size = getline(&buf_read, &buf_size, file);
-		if (rdesc_match(rpt_desc, buf_read, size)) {
+		if (size > -1 && rdesc_match(rpt_desc, buf_read, size)) {
 			filename = malloc(256);
 			snprintf(filename, 256,
 				 "%s/%s/events", HID_DBG_DIR, namelist[i]->d_name);
