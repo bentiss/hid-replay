@@ -219,7 +219,7 @@ static char* find_hid_dbg(struct hidraw_devinfo *info, struct hidraw_report_desc
 {
 	struct dirent **namelist;
 	int i, ndev;
-	char *filename = NULL;
+	char filename[PATH_MAX];
 	char target_name[16];
 	char *buf_read = NULL;
 	size_t buf_size = 0;
@@ -248,8 +248,7 @@ static char* find_hid_dbg(struct hidraw_devinfo *info, struct hidraw_report_desc
 		/* Get Report Descriptor */
 		size = getline(&buf_read, &buf_size, file);
 		if (size > -1 && rdesc_match(rpt_desc, buf_read, size)) {
-			filename = malloc(256);
-			snprintf(filename, 256,
+			snprintf(filename, sizeof(filename),
 				 "%s/%s/events", HID_DBG_DIR, namelist[i]->d_name);
 		}
 		fclose(file);
@@ -259,7 +258,7 @@ static char* find_hid_dbg(struct hidraw_devinfo *info, struct hidraw_report_desc
 	free(namelist);
 	free(buf_read);
 
-	return filename;
+	return strdup(filename);
 }
 
 static int fetch_hidraw_information(struct hid_recorder_device *device)
