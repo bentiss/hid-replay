@@ -198,9 +198,9 @@ static char* scan_devices(void)
 
 static int rdesc_match(struct hidraw_report_descriptor *rpt_desc, const char *str, int size)
 {
-	int i;
-	int rdesc_size_str = (size - 1) / 3; /* remove terminating \0,
-						2 chars per u8 + space (or \n for the last) */
+	unsigned int i;
+	unsigned int rdesc_size_str = (size - 1) / 3; /* remove terminating \0,
+							 2 chars per u8 + space (or \n for the last) */
 
 	if (rdesc_size_str != rpt_desc->size)
 		return 0;
@@ -269,7 +269,8 @@ static int fetch_hidraw_information(struct hid_recorder_device *device)
 	struct hidraw_devinfo *info = &device->info;
 	char *name = device->name;
 	char *phys = device->phys;
-	int i, res, desc_size = 0;
+	unsigned int i;
+	int res, desc_size = 0;
 	memset(rpt_desc, 0x0, sizeof(*rpt_desc));
 	memset(info, 0x0, sizeof(*info));
 	memset(name, 0x0, 256);
@@ -346,7 +347,7 @@ static int read_hiddbg_event(struct hid_recorder_device *device)
 	char **buf_read = &device->buf_read;
 	char **buf_write = &device->buf_write;
 	size_t *buf_size = &device->buf_size;
-	int old_buf_size = *buf_size;
+	size_t old_buf_size = *buf_size;
 
 	/* Get a report from the device */
 	size = getline(buf_read, buf_size, file);

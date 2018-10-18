@@ -285,7 +285,7 @@ static void hid_replay_event(int fuhid, char *ubuf, ssize_t len, struct timeval 
 
 static void hid_replay_name(char *buf, ssize_t len, struct uhid_create_req *dev)
 {
-	if (len - 3 >= sizeof(dev->name))
+	if (len - 3 >= (ssize_t)sizeof(dev->name))
 		return;
 	sscanf(buf, "N: %[^\n]\n", dev->name);
 	len = strlen((const char *)dev->name);
@@ -295,7 +295,7 @@ static void hid_replay_name(char *buf, ssize_t len, struct uhid_create_req *dev)
 
 static void hid_replay_phys(char *buf, ssize_t len, struct uhid_create_req *dev)
 {
-	if (len - 3 >= sizeof(dev->phys))
+	if (len - 3 >= (ssize_t)sizeof(dev->phys))
 		return;
 	sscanf(buf, "P: %[^\n]\n", dev->phys);
 }
@@ -306,7 +306,7 @@ static void hid_replay_info(char *buf, ssize_t len, struct uhid_create_req *dev)
 	int vid;
 	int pid;
 	int n;
-	if (len - 3 >= sizeof(dev->phys))
+	if (len - 3 >= (ssize_t)sizeof(dev->phys))
 		return;
 	n = sscanf(buf, "I: %x %x %x\n", &bus, &vid, &pid);
 	if (n != 3)
