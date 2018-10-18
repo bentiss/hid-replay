@@ -50,7 +50,6 @@
 #include <string.h>
 #include <stdlib.h>
 
-#define _GNU_SOURCE
 #include <errno.h>
 #ifdef __UCLIBC__
 extern const char *program_invocation_name;
