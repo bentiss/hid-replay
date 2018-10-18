@@ -484,7 +484,7 @@ static int hid_replay_setup_pollfd(struct hid_replay_devices_list *devices)
 
 static int hid_replay_wait_opened(struct hid_replay_devices_list *devices)
 {
-	int i, ret;
+	int ret;
 	struct uhid_event event;
 
 	do {
