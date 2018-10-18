@@ -161,7 +161,7 @@ static char* scan_devices(void)
 
 	for (i = 0; i < ndev; i++)
 	{
-		char fname[64];
+		char fname[PATH_MAX];
 		int fd = -1;
 		char name[256] = "???";
 
@@ -233,7 +233,7 @@ static char* find_hid_dbg(struct hidraw_devinfo *info, struct hidraw_report_desc
 
 	for (i = 0; i < ndev; i++)
 	{
-		char fname[256];
+		char fname[PATH_MAX];
 		FILE *file;
 		int size;
 
