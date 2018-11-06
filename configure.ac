@@ -10,6 +10,7 @@ AC_CONFIG_AUX_DIR([config-aux])
 
 # Initialize Automake
 AM_INIT_AUTOMAKE([foreign dist-bzip2])
+AC_USE_SYSTEM_EXTENSIONS
 
 LIB_VERSION=1:0:0
 AC_SUBST([LIB_VERSION])

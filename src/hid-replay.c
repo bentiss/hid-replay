@@ -44,7 +44,6 @@
 #include <errno.h>
 #include <ccan/list/list.h>
 
-#define _GNU_SOURCE
 #include <errno.h>
 #ifdef __UCLIBC__
 extern const char *program_invocation_name;

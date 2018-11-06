@@ -13,9 +13,11 @@ cflags = ['-Wno-unused-parameter', '-DHAVE_CONFIG_H']
 add_project_arguments(cflags, language : 'c')
 
 # We need a config.h for the ccan headers
+config_h = configuration_data()
+config_h.set('_GNU_SOURCE', '1')
 configure_file(output: 'config.h',
 	       install: false,
-	       configuration: configuration_data())
+	       configuration: config_h)
 
 executable('hid-recorder',
 	   'src/hid-recorder.c',
