@@ -149,6 +149,7 @@ def build_rkey(reportID, length):
 
 def parse_event(line, rdesc, rdesc_dict, maybe_numbered):
     e, time, size, report = line.split(' ', 3)
+    size = int(size)
     report = [int(item, 16) for item in report.split(' ')]
     numbered = True
     key = build_rkey(report[0], size)
