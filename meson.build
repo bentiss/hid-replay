@@ -9,8 +9,13 @@ dir_man1 = join_paths(get_option('prefix'), get_option('mandir'), '1')
 includes_include = include_directories('include')
 
 cc = meson.get_compiler('c')
-cflags = ['-Wno-unused-parameter']
+cflags = ['-Wno-unused-parameter', '-DHAVE_CONFIG_H']
 add_project_arguments(cflags, language : 'c')
+
+# We need a config.h for the ccan headers
+configure_file(output: 'config.h',
+	       install: false,
+	       configuration: configuration_data())
 
 executable('hid-recorder',
 	   'src/hid-recorder.c',
