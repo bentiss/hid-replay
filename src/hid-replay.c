@@ -218,7 +218,7 @@ static void hid_replay_sleep(struct hid_replay_devices_list *devices,
 
 	gettimeofday(&end_time, NULL);
 
-	end_time.tv_usec += timeout_usec;
+	end_time.tv_usec += timeout_usec % 1000000L;
 	end_time.tv_sec += timeout_usec / 1000000L;
 
 	/* we need to flush the incoming events until timeout is done */
@@ -566,9 +566,6 @@ int main(int argc, char **argv)
 	memset(&event, 0, sizeof(event));
 	memset(&dev, 0, sizeof(dev));
 
-	if (try_open_uhid())
-		return EXIT_FAILURE;
-
 	while (1) {
 		int option_index = 0;
 		int c = getopt_long(argc, argv, "hi1s:", long_options, &option_index);
@@ -600,6 +597,9 @@ int main(int argc, char **argv)
 		return usage();
 	}
 
+	if (try_open_uhid())
+		return EXIT_FAILURE;
+
 	devices = hid_replay_create_devices(fp);
 
 	if (!devices)
@@ -619,7 +619,7 @@ int main(int argc, char **argv)
 	stop = 0;
 	while (!stop) {
 		if (mode == MODE_INTERACTIVE) {
-			printf("Hit enter (re)start replaying the events\n");
+			printf("Hit enter to (re)start replaying the events\n");
 			do {
 				hid_replay_get_one_event(devices, &event, -1);
 			} while (!devices->fds[0].revents & POLLIN);
