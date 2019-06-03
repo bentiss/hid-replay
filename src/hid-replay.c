@@ -183,14 +183,11 @@ static int hid_replay_get_one_event(struct hid_replay_devices_list *devices,
 	do {
 		ret = poll(devices->fds, devices->count, timeout);
 
-		if (ret > 0 && devices->fds[0].revents & POLLIN)
-			ret--; /* ignore stdin inputs */
-
 		if (ret == 0)
 			return 0; /* timeout */
 
 		if (ret > 0) {
-			for (i=1; i < devices->count; i++) {
+			for (i=0; i < devices->count; i++) {
 				if (devices->fds[i].revents & POLLIN) {
 					read(devices->fds[i].fd, event, sizeof(*event));
 					hid_replay_incoming_event(devices->fds[i].fd,
@@ -218,7 +215,7 @@ static void hid_replay_sleep(struct hid_replay_devices_list *devices,
 
 	gettimeofday(&end_time, NULL);
 
-	end_time.tv_usec += timeout_usec;
+	end_time.tv_usec += timeout_usec % 1000000L;
 	end_time.tv_sec += timeout_usec / 1000000L;
 
 	/* we need to flush the incoming events until timeout is done */
@@ -456,7 +453,7 @@ static int hid_replay_setup_pollfd(struct hid_replay_devices_list *devices)
 {
 	struct pollfd *fds;
 	struct hid_replay_device *device;
-	int count = 1; /* stdin */
+	int count = 0;
 
 	list_for_each(&devices->devices, device, list)
 		++count;
@@ -465,9 +462,7 @@ static int hid_replay_setup_pollfd(struct hid_replay_devices_list *devices)
 	if (!fds)
 		return -ENOMEM;
 
-	fds[0].fd = STDIN_FILENO;
-	fds[0].events = POLLIN;
-	count = 1;
+	count = 0;
 
 	list_for_each(&devices->devices, device, list) {
 		fds[count].fd = device->fuhid;
@@ -483,17 +478,22 @@ static int hid_replay_setup_pollfd(struct hid_replay_devices_list *devices)
 
 static int hid_replay_wait_opened(struct hid_replay_devices_list *devices)
 {
+	int n = devices->count;
 	int ret;
 	struct uhid_event event;
 
 	do {
-		ret = hid_replay_get_one_event(devices, &event, -1);
+		ret = hid_replay_get_one_event(devices, &event, 5000);
 		if (ret == 1) {
 			if (event.type == UHID_OPEN) {
-				return 0;
+				n--;
 			}
 		}
-	} while (ret == 1);
+		if (ret == 0) {
+			fprintf(stderr, "Timed out with %d device(s) still unavailable.\n", n);
+			return -1;
+		}
+	} while (n);
 
 	return 0;
 }
@@ -566,9 +566,6 @@ int main(int argc, char **argv)
 	memset(&event, 0, sizeof(event));
 	memset(&dev, 0, sizeof(dev));
 
-	if (try_open_uhid())
-		return EXIT_FAILURE;
-
 	while (1) {
 		int option_index = 0;
 		int c = getopt_long(argc, argv, "hi1s:", long_options, &option_index);
@@ -600,6 +597,9 @@ int main(int argc, char **argv)
 		return usage();
 	}
 
+	if (try_open_uhid())
+		return EXIT_FAILURE;
+
 	devices = hid_replay_create_devices(fp);
 
 	if (!devices)
@@ -609,7 +609,8 @@ int main(int argc, char **argv)
 	if (error)
 		return error;
 
-	hid_replay_wait_opened(devices);
+	if (hid_replay_wait_opened(devices))
+		return EXIT_FAILURE;
 
 	if (sleep_time)
 		hid_replay_sleep(devices, sleep_time * 1000000);
@@ -619,10 +620,9 @@ int main(int argc, char **argv)
 	stop = 0;
 	while (!stop) {
 		if (mode == MODE_INTERACTIVE) {
-			printf("Hit enter (re)start replaying the events\n");
-			do {
-				hid_replay_get_one_event(devices, &event, -1);
-			} while (!devices->fds[0].revents & POLLIN);
+			do { }
+			while (hid_replay_get_one_event(devices, &event, 100) > 0);
+			printf("Hit enter to (re)start replaying the events\n");
 			fgets (line, sizeof(line), stdin);
 		} else
 			stop = 1;
