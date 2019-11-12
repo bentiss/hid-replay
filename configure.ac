@@ -35,6 +35,11 @@ if test "x$XMLTO" = "x" || test "x$ASCIIDOC" = "x"; then
 	AC_MSG_WARN([xmlto or asciidoc not found - cannot create man pages without it])
 fi
 
+AC_WARNING([
+******************************************************
+* This tool is obsolete. Please switch to hid-tools: *
+* https://gitlab.freedesktop.org/libevdev/hid-tools  *
+******************************************************])
 
 AC_CONFIG_FILES([Makefile
                  src/Makefile])
