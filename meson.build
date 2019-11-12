@@ -53,3 +53,9 @@ if xmlto.found() and asciidoc.found()
 else
 	warning('xmlto or asciidoc not found - cannot create man pages without it')
 endif
+
+warning('
+******************************************************
+* This tool is obsolete. Please switch to hid-tools: *
+* https://gitlab.freedesktop.org/libevdev/hid-tools  *
+******************************************************')
